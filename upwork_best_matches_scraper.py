@@ -29,7 +29,6 @@ ch.setFormatter(formatter)
 logger.addHandler(ch)
 
 def bypass_captcha(driver):
-    """Cloudflare 'Verify you are human' checkbox ko auto-click karna"""
     try:
         iframes = driver.find_elements(By.TAG_NAME, "iframe")
         for frame in iframes:
@@ -48,21 +47,18 @@ def bypass_captcha(driver):
     return False
 
 def perform_upwork_login(driver, email, password):
-    """Fully Automated Stealth Login"""
     try:
         wait = WebDriverWait(driver, 30)
         driver.get('https://www.upwork.com/ab/account-security/login')
         time.sleep(5)
         bypass_captcha(driver)
 
-        # 1. Email
         email_field = wait.until(EC.element_to_be_clickable((By.ID, "login_username")))
         for char in email:
             email_field.send_keys(char)
             time.sleep(random.uniform(0.1, 0.2))
         email_field.send_keys(Keys.ENTER)
         
-        # 2. Password
         time.sleep(8)
         bypass_captcha(driver)
         password_field = wait.until(EC.element_to_be_clickable((By.ID, "login_password")))
@@ -70,7 +66,6 @@ def perform_upwork_login(driver, email, password):
             password_field.send_keys(char)
             time.sleep(random.uniform(0.1, 0.2))
         
-        # Keep me logged in
         driver.execute_script("let cb = document.querySelector('input#login_remember'); if (cb && !cb.checked) cb.click();")
         password_field.send_keys(Keys.ENTER)
         
@@ -82,7 +77,6 @@ def perform_upwork_login(driver, email, password):
 def scrape_cycle():
     driver = None
     try:
-        # 1. Check if account is connected
         auth_res = supabase.table('upwork_auth').select('*').eq('id', 1).execute()
         if not auth_res.data:
             logger.warning("STOPPED: No account connected in Dashboard.")
@@ -97,7 +91,6 @@ def scrape_cycle():
         driver = uc.Chrome(options=options, version_main=144)
 
         if driver:
-            # 2. Check Login
             driver.get('https://www.upwork.com/nx/find-work/')
             time.sleep(10)
             bypass_captcha(driver)
@@ -105,7 +98,6 @@ def scrape_cycle():
             if "login" in driver.current_url:
                 perform_upwork_login(driver, creds['email'], creds['password'])
 
-            # 3. YOUR WORKING SCRAPE LOGIC (Exact Example Logic)
             timestamp = int(time.time())
             driver.get(f'https://www.upwork.com/nx/find-work/?t={timestamp}')
             logger.info("Page opening... Waiting 45 seconds.")
@@ -115,9 +107,7 @@ def scrape_cycle():
                 feed_tab = driver.find_element(By.XPATH, "//button[contains(., 'My Feed')]")
                 driver.execute_script("arguments[0].click();", feed_tab)
                 logger.info("My Feed Tab clicked.")
-                
-                time.sleep(1) # 1 second delay as requested
-                logger.info("Performing hard reload before scraping...")
+                time.sleep(1) 
                 driver.get(driver.current_url) 
                 time.sleep(20) 
             except: pass
@@ -140,11 +130,22 @@ def scrape_cycle():
                         let art = l.closest('article') || l.closest('section') || l.parentElement.parentElement.parentElement;
                         if (art && art.innerText.length > 100) {
                             let fullText = art.innerText;
+                            
+                            // --- ROBUST VERIFIED DETECTION ---
+                            let verified = "Unverified";
+                            // Check for data attribute, specific icon class, or SVG use tag
+                            let vBadge = art.querySelector('[data-test="payment-verified"]');
+                            let vIcon = art.querySelector('.air3-icon-verified');
+                            let vSvg = art.querySelector('svg title')?.innerHTML?.toLowerCase()?.includes('verified');
+                            
+                            if (vBadge || vIcon || vSvg || fullText.includes("Payment verified")) {
+                                verified = "Verified";
+                            }
+
                             let skillElements = art.querySelectorAll('[data-test="skill"], .air3-token, .job-tile-skills .up-skill-badge');
                             let tags = Array.from(skillElements).map(s => s.innerText.trim()).filter(s => s.length > 0).join(', ');
                             let location = art.querySelector('[data-test="client-country"], .job-tile-location')?.innerText || "Unknown";
                             let spent = art.querySelector('[data-test="client-spendings"]')?.innerText || "$0 spent";
-                            let verified = art.querySelector('[data-test="payment-verified"]') || art.querySelector('.air3-icon-verified') ? "Verified" : "Unverified";
                             
                             let budgetType = art.querySelector('[data-test="job-type"]')?.innerText || "";
                             let budgetVal = art.querySelector('[data-test="budget"], [data-test="hourly-rate"]')?.innerText || "";
@@ -194,6 +195,7 @@ def scrape_cycle():
                 if any(k in (item['title'] + item['text']).lower() for k in ['web', 'dev', 'html', 'js', 'react', 'api', 'node', 'php', 'laravel', 'shopify', 'wordpress', 'figma']):
                     exists = supabase.table('jobs').select('id').eq('job_id', job_id).execute()
                     if not exists.data:
+                        logger.info(f"CLOUD SAVING: {item['title'][:35]} | {item['verified']}")
                         supabase.table('jobs').insert({
                             "job_id": job_id, "job_url": item['url'], "job_title": item['title'],
                             "posted_date": item['exact_time'], "job_description": item['text'],

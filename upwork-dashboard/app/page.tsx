@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import ProposalModal from "@/components/ProposalModal";
 import Sidebar from "@/components/Sidebar";
 
-// --- INSTANT PURGE TIMER COMPONENT ---
+// --- PREMIUM BOXED TIMER COMPONENT ---
 function JobTimer({ createdAt, expiryMins, onExpire }: { createdAt: string, expiryMins: number, onExpire: () => void }) {
   const [time, setTime] = useState({ h: "00", m: "00", s: "00" });
 
@@ -17,7 +17,7 @@ function JobTimer({ createdAt, expiryMins, onExpire }: { createdAt: string, expi
 
       if (diff <= 0) {
         clearInterval(interval);
-        onExpire(); // <--- DATABASE AUR UI SE FORAN DELETE KARO
+        onExpire(); 
       } else {
         const h = Math.floor(diff / (1000 * 60 * 60));
         const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -42,7 +42,7 @@ function JobTimer({ createdAt, expiryMins, onExpire }: { createdAt: string, expi
       ].map((unit, i) => (
         <div key={i} className="flex flex-col items-center">
           <div className="bg-slate-800 border border-slate-700 rounded-md w-8 h-8 flex items-center justify-center shadow-inner">
-            <span className="text-[12px] font-black text-emerald-400 font-mono">{unit.val}</span>
+            <span className="text-[11px] font-black text-emerald-400 font-mono">{unit.val}</span>
           </div>
           <span className="text-[6px] font-black uppercase text-slate-500 mt-0.5">{unit.label}</span>
         </div>
@@ -80,17 +80,11 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [fetchJobs]);
 
-  // --- DELETE LOGIC (UI + DATABASE) ---
   const handleIgnore = useCallback(async (jobId: string) => {
-    // 1. UI se foran remove karo
     setJobs((prev) => prev.filter((job) => job.job_id !== jobId));
-    
-    // 2. Database se permanent delete karo
     try {
       await fetch(`/api/jobs?id=${jobId}`, { method: "DELETE" });
-    } catch (err) {
-      console.error("Auto-delete failed for ID:", jobId);
-    }
+    } catch (err) { console.error("Delete failed"); }
   }, []);
 
   const toggleDescription = (jobId: string) => {
@@ -137,14 +131,6 @@ export default function Dashboard() {
                     <div className="flex justify-between items-start">
                       <div className="flex flex-wrap gap-3 items-center">
                         {isNew && currentPage === 1 && <span className="bg-emerald-600 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg animate-pulse">NEW ARRIVAL</span>}
-                        
-                        {/* TIMER WITH AUTO-DELETE CALLBACK */}
-                        <JobTimer 
-                          createdAt={job.created_at} 
-                          expiryMins={expiryMins} 
-                          onExpire={() => handleIgnore(job.job_id)} 
-                        />
-
                         {job.is_verified === "Verified" ? (
                           <span className="flex items-center gap-1 bg-blue-600/20 text-blue-400 text-[9px] font-black px-3 py-1 rounded-lg border border-blue-500/20 tracking-tighter uppercase">Verified</span>
                         ) : (
@@ -153,14 +139,25 @@ export default function Dashboard() {
                         <span className="bg-slate-800/50 text-slate-400 text-[9px] font-bold px-3 py-1 rounded-lg tracking-widest uppercase border border-slate-700/50">{job.client_location}</span>
                         <span className="bg-purple-500/10 text-purple-400 text-[9px] font-bold px-3 py-1 rounded-lg border border-purple-500/20 uppercase tracking-widest">{job.experience_level}</span>
                       </div>
-                      <button onClick={() => handleIgnore(job.job_id)} className="flex items-center gap-2 text-slate-600 hover:text-red-400 transition-all group/btn">
-                        <span className="text-[10px] font-black uppercase tracking-widest opacity-0 group-hover/btn:opacity-100 transition-opacity">Ignore</span>
-                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                      </button>
+                      
+                      <div className="flex items-center gap-6">
+                        <JobTimer createdAt={job.created_at} expiryMins={expiryMins} onExpire={() => handleIgnore(job.job_id)} />
+                        <button onClick={() => handleIgnore(job.job_id)} className="text-slate-600 hover:text-red-400 transition-all group/btn">
+                          <span className="text-[10px] font-black uppercase tracking-widest opacity-0 group-hover/btn:opacity-100 transition-opacity">Ignore</span>
+                          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                      </div>
                     </div>
 
                     <a href={job.job_url} target="_blank" className="text-3xl font-black text-white hover:text-emerald-400 transition-colors leading-[1.1] tracking-tight">{job.job_title}</a>
                     
+                    {/* RESTORED SKILLS TAGS */}
+                    <div className="flex flex-wrap gap-2">
+                      {job.job_tags?.split(',').map((tag: string, i: number) => (
+                        <span key={i} className="bg-slate-900 text-slate-400 text-[10px] font-bold px-4 py-1.5 rounded-xl border border-slate-800 transition-colors">{tag.trim()}</span>
+                      ))}
+                    </div>
+
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-6 border-y border-slate-800/50">
                       <div className="flex flex-col"><span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Budget / Rate</span><span className="text-sm font-bold text-emerald-500">{job.budget}</span></div>
                       <div className="flex flex-col"><span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Duration</span><span className="text-sm font-bold text-slate-200">{job.project_duration}</span></div>
@@ -177,7 +174,7 @@ export default function Dashboard() {
                       )}
                     </div>
 
-                    <div className="pt-4 flex justify-between items-center">
+                    <div className="pt-4 flex justify-between items-center border-t border-slate-800/50">
                       <div className="flex items-center gap-2">
                         <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Client Spent:</span>
                         <span className="text-[10px] font-bold text-slate-400">{job.client_spent}</span>
@@ -193,6 +190,7 @@ export default function Dashboard() {
             })}
           </div>
 
+          {/* Pagination */}
           {totalPages > 1 && (
             <div className="mt-20 flex items-center justify-center gap-4 pb-20">
               <button disabled={currentPage === 1} onClick={() => {setCurrentPage(currentPage - 1); window.scrollTo({top:0, behavior:'smooth'})}} className="h-14 w-14 flex items-center justify-center rounded-2xl border border-slate-800 bg-[#0B1120] text-slate-400 hover:border-emerald-500 transition-all disabled:opacity-10">
