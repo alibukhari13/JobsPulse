@@ -1,4 +1,3 @@
-// app/api/jobs/route.js
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
@@ -9,9 +8,17 @@ const supabase = createClient(
 
 export const dynamic = 'force-dynamic';
 
-// GET: Jobs fetch karne ke liye
 export async function GET() {
     try {
+        // 1. Get Expiry Setting from Supabase
+        const { data: settings } = await supabase.from('settings').select('expiry_minutes').single();
+        const expiryMins = settings?.expiry_minutes || 360; // Default 6 hours
+
+        // 2. Auto-Delete Expired Jobs
+        const cutoffTime = new Date(Date.now() - expiryMins * 60 * 1000).toISOString();
+        await supabase.from('jobs').delete().lt('created_at', cutoffTime);
+
+        // 3. Fetch Remaining Jobs
         const { data, error } = await supabase
             .from('jobs')
             .select('*')
@@ -24,19 +31,13 @@ export async function GET() {
     }
 }
 
-// DELETE: Job ko database se khatam karne ke liye
 export async function DELETE(request) {
     try {
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id');
-
         if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
 
-        const { error } = await supabase
-            .from('jobs')
-            .delete()
-            .eq('job_id', id);
-
+        const { error } = await supabase.from('jobs').delete().eq('job_id', id);
         if (error) throw error;
         return NextResponse.json({ success: true });
     } catch (error) {

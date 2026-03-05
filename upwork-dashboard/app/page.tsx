@@ -4,8 +4,56 @@ import { useState, useEffect, useCallback } from "react";
 import ProposalModal from "@/components/ProposalModal";
 import Sidebar from "@/components/Sidebar";
 
+// --- INSTANT PURGE TIMER COMPONENT ---
+function JobTimer({ createdAt, expiryMins, onExpire }: { createdAt: string, expiryMins: number, onExpire: () => void }) {
+  const [time, setTime] = useState({ h: "00", m: "00", s: "00" });
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const created = new Date(createdAt).getTime();
+      const expiry = created + (expiryMins * 60 * 1000);
+      const now = new Date().getTime();
+      const diff = expiry - now;
+
+      if (diff <= 0) {
+        clearInterval(interval);
+        onExpire(); // <--- DATABASE AUR UI SE FORAN DELETE KARO
+      } else {
+        const h = Math.floor(diff / (1000 * 60 * 60));
+        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const s = Math.floor((diff % (1000 * 60)) / 1000);
+        
+        setTime({
+          h: h.toString().padStart(2, '0'),
+          m: m.toString().padStart(2, '0'),
+          s: s.toString().padStart(2, '0')
+        });
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [createdAt, expiryMins, onExpire]);
+
+  return (
+    <div className="flex gap-1 items-center">
+      {[
+        { val: time.h, label: "H" },
+        { val: time.m, label: "M" },
+        { val: time.s, label: "S" }
+      ].map((unit, i) => (
+        <div key={i} className="flex flex-col items-center">
+          <div className="bg-slate-800 border border-slate-700 rounded-md w-8 h-8 flex items-center justify-center shadow-inner">
+            <span className="text-[12px] font-black text-emerald-400 font-mono">{unit.val}</span>
+          </div>
+          <span className="text-[6px] font-black uppercase text-slate-500 mt-0.5">{unit.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const [jobs, setJobs] = useState<any[]>([]);
+  const [expiryMins, setExpiryMins] = useState(360);
   const [currentPage, setCurrentPage] = useState(1);
   const [isSyncing, setIsSyncing] = useState(false);
   const [expandedJobs, setExpandedJobs] = useState<Record<string, boolean>>({});
@@ -18,6 +66,10 @@ export default function Dashboard() {
       const res = await fetch(`/api/jobs?t=${Date.now()}`, { cache: "no-store" });
       const data = await res.json();
       if (Array.isArray(data)) setJobs(data);
+      
+      const sRes = await fetch("/api/settings");
+      const sData = await sRes.json();
+      setExpiryMins(sData.expiry_minutes);
     } catch (err) { console.log("Sync Error"); }
     finally { setTimeout(() => setIsSyncing(false), 800); }
   }, []);
@@ -28,15 +80,18 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [fetchJobs]);
 
-  const handleIgnore = async (jobId: string) => {
+  // --- DELETE LOGIC (UI + DATABASE) ---
+  const handleIgnore = useCallback(async (jobId: string) => {
+    // 1. UI se foran remove karo
     setJobs((prev) => prev.filter((job) => job.job_id !== jobId));
+    
+    // 2. Database se permanent delete karo
     try {
       await fetch(`/api/jobs?id=${jobId}`, { method: "DELETE" });
     } catch (err) {
-      console.error("Delete failed:", err);
-      fetchJobs();
+      console.error("Auto-delete failed for ID:", jobId);
     }
-  };
+  }, []);
 
   const toggleDescription = (jobId: string) => {
     setExpandedJobs((prev) => ({ ...prev, [jobId]: !prev[jobId] }));
@@ -48,7 +103,6 @@ export default function Dashboard() {
   return (
     <div className="flex min-h-screen bg-[#020617] text-slate-100 font-sans antialiased text-[14px]">
       {selectedJob && <ProposalModal job={selectedJob} onClose={() => setSelectedJob(null)} />}
-      
       <Sidebar isSyncing={isSyncing} />
 
       <main className="flex-1 p-4 lg:ml-72 lg:p-12">
@@ -80,14 +134,19 @@ export default function Dashboard() {
               return (
                 <div key={job.job_id} className="group relative rounded-[2.5rem] border border-slate-800/80 bg-[#0B1120] p-10 transition-all hover:border-emerald-500/40 hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)]">
                   <div className="flex flex-col gap-6">
-                    <div className="flex justify-between items-center">
-                      <div className="flex flex-wrap gap-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex flex-wrap gap-3 items-center">
                         {isNew && currentPage === 1 && <span className="bg-emerald-600 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg animate-pulse">NEW ARRIVAL</span>}
+                        
+                        {/* TIMER WITH AUTO-DELETE CALLBACK */}
+                        <JobTimer 
+                          createdAt={job.created_at} 
+                          expiryMins={expiryMins} 
+                          onExpire={() => handleIgnore(job.job_id)} 
+                        />
+
                         {job.is_verified === "Verified" ? (
-                          <span className="flex items-center gap-1 bg-blue-600/20 text-blue-400 text-[9px] font-black px-3 py-1 rounded-lg border border-blue-500/20 tracking-tighter uppercase">
-                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-                            Verified
-                          </span>
+                          <span className="flex items-center gap-1 bg-blue-600/20 text-blue-400 text-[9px] font-black px-3 py-1 rounded-lg border border-blue-500/20 tracking-tighter uppercase">Verified</span>
                         ) : (
                           <span className="bg-red-900/20 text-red-400 text-[9px] font-black px-3 py-1 rounded-lg border border-red-500/20 tracking-tighter uppercase">Unverified</span>
                         )}
@@ -102,29 +161,11 @@ export default function Dashboard() {
 
                     <a href={job.job_url} target="_blank" className="text-3xl font-black text-white hover:text-emerald-400 transition-colors leading-[1.1] tracking-tight">{job.job_title}</a>
                     
-                    <div className="flex flex-wrap gap-2">
-                      {job.job_tags?.split(',').map((tag: string, i: number) => (
-                        <span key={i} className="bg-slate-900 text-slate-400 text-[10px] font-bold px-4 py-1.5 rounded-xl border border-slate-800 transition-colors">{tag.trim()}</span>
-                      ))}
-                    </div>
-
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-6 border-y border-slate-800/50">
-                      <div className="flex flex-col">
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Budget / Rate</span>
-                        <span className="text-sm font-bold text-emerald-500">{job.budget}</span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Duration</span>
-                        <span className="text-sm font-bold text-slate-200">{job.project_duration}</span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Proposals</span>
-                        <span className="text-sm font-bold text-slate-200">{job.job_proposals}</span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Posted</span>
-                        <span className="text-sm font-bold text-slate-200">{job.posted_date}</span>
-                      </div>
+                      <div className="flex flex-col"><span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Budget / Rate</span><span className="text-sm font-bold text-emerald-500">{job.budget}</span></div>
+                      <div className="flex flex-col"><span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Duration</span><span className="text-sm font-bold text-slate-200">{job.project_duration}</span></div>
+                      <div className="flex flex-col"><span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Proposals</span><span className="text-sm font-bold text-slate-200">{job.job_proposals}</span></div>
+                      <div className="flex flex-col"><span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Posted</span><span className="text-sm font-bold text-slate-200">{job.posted_date}</span></div>
                     </div>
 
                     <div className="relative">
@@ -142,12 +183,7 @@ export default function Dashboard() {
                         <span className="text-[10px] font-bold text-slate-400">{job.client_spent}</span>
                       </div>
                       <div className="flex gap-4">
-                        <button 
-                          onClick={() => setSelectedJob(job)}
-                          className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-[1.5rem] text-sm font-black transition-all shadow-xl shadow-blue-900/20 active:scale-95 uppercase tracking-widest"
-                        >
-                          Generate Proposal ✨
-                        </button>
+                        <button onClick={() => setSelectedJob(job)} className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-[1.5rem] text-sm font-black transition-all shadow-xl shadow-blue-900/20 active:scale-95 uppercase tracking-widest">Generate Proposal ✨</button>
                         <a href={job.job_url} target="_blank" className="bg-slate-800 hover:bg-slate-700 text-white px-8 py-4 rounded-[1.5rem] text-sm font-black transition-all active:scale-95 uppercase tracking-widest">Apply on Upwork</a>
                       </div>
                     </div>

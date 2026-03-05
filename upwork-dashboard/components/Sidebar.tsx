@@ -25,7 +25,7 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
     });
     setShowModal(false);
     checkAuth();
-    alert("Upwork Connected! Scraper will now use these credentials.");
+    alert("Upwork Connected! ✅");
   };
 
   const handleDisconnect = async () => {
@@ -34,25 +34,24 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
     checkAuth();
   };
 
+  const menuItems = [
+    { name: "Live Monitor", href: "/", icon: "M4 6h16M4 12h16M4 18h16" },
+    { name: "My Portfolio", href: "/projects", icon: "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" },
+    { name: "AI History", href: "/history", icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
+    { name: "Proposal Format", href: "/format", icon: "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" },
+    { name: "Set Timer", href: "/timer", icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
+    
+  ];
+
   return (
     <aside className="fixed left-0 top-0 hidden h-screen w-72 flex-col border-r border-slate-800/60 bg-[#0B1120] lg:flex shadow-2xl z-40">
-      {/* Login Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
           <div className="bg-[#0B1120] border border-slate-800 w-full max-w-md rounded-[2.5rem] p-10 shadow-2xl">
             <h2 className="text-2xl font-black text-white mb-2">Connect Upwork</h2>
-            <p className="text-slate-500 text-xs mb-8 uppercase tracking-widest font-bold">Enter your credentials</p>
-            <div className="space-y-4">
-              <input 
-                type="email" placeholder="Upwork Email" 
-                className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 outline-none focus:border-emerald-500 text-white"
-                onChange={(e) => setCredentials({...credentials, email: e.target.value})}
-              />
-              <input 
-                type="password" placeholder="Password" 
-                className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 outline-none focus:border-emerald-500 text-white"
-                onChange={(e) => setCredentials({...credentials, password: e.target.value})}
-              />
+            <div className="space-y-4 mt-6">
+              <input type="email" placeholder="Upwork Email" className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 outline-none focus:border-emerald-500 text-white" onChange={(e) => setCredentials({...credentials, email: e.target.value})} />
+              <input type="password" placeholder="Password" className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 outline-none focus:border-emerald-500 text-white" onChange={(e) => setCredentials({...credentials, password: e.target.value})} />
               <button onClick={handleConnect} className="w-full bg-emerald-600 py-4 rounded-2xl font-black hover:bg-emerald-500 transition-all">LOGIN & CONNECT</button>
               <button onClick={() => setShowModal(false)} className="w-full text-slate-500 text-xs font-bold py-2">CANCEL</button>
             </div>
@@ -68,10 +67,12 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
       </div>
 
       <nav className="flex-1 p-6 space-y-3">
-        <Link href="/" className={`flex items-center gap-3 rounded-2xl px-5 py-4 font-bold ${pathname === "/" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "text-slate-400 hover:bg-slate-800"}`}>Live Monitor</Link>
-        <Link href="/projects" className={`flex items-center gap-3 rounded-2xl px-5 py-4 font-bold ${pathname === "/projects" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "text-slate-400 hover:bg-slate-800"}`}>My Portfolio</Link>
-        <Link href="/history" className={`flex items-center gap-3 rounded-2xl px-5 py-4 font-bold ${pathname === "/history" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "text-slate-400 hover:bg-slate-800"}`}>AI History</Link>
-        <Link href="/format" className={`flex items-center gap-3 rounded-2xl px-5 py-4 font-bold ${pathname === "/format" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "text-slate-400 hover:bg-slate-800"}`}>Proposal Format</Link>
+        {menuItems.map((item) => (
+          <Link key={item.name} href={item.href} className={`flex items-center gap-3 rounded-2xl px-5 py-4 font-bold ${pathname === item.href ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-inner" : "text-slate-400 hover:bg-slate-800"}`}>
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} /></svg>
+            {item.name}
+          </Link>
+        ))}
       </nav>
 
       <div className="p-6 border-t border-slate-800/50 space-y-4">
