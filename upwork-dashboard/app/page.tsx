@@ -78,7 +78,7 @@ export default function Dashboard() {
       const data = await res.json();
       if (Array.isArray(data)) setJobs(data);
       
-      const sRes = await fetch("/api/settings");
+      const sRes = await fetch("/api/settings-s");
       const sData = await sRes.json();
       setExpiryMins(sData.expiry_minutes);
     } catch (err) { console.log("Sync Error"); }
