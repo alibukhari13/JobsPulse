@@ -10,7 +10,6 @@ function JobTimer({ createdAt, expiryMins, onExpire }: { createdAt: string, expi
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    // SAFETY: Agar expiryMins load nahi hua, to timer start hi na karo
     if (expiryMins === null || expiryMins <= 0) return;
 
     const calculateTime = () => {
