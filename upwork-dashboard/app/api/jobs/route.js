@@ -2,8 +2,8 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
 const supabase = createClient(
-   process.env.SUPABASE_URL || "https://zpgcldllammzlxkktpfv.supabase.co", 
-  process.env.SUPABASE_KEY || "sb_publishable_GT0CtQWcAdRGNfGGPd5GVg_zubsqSyy"
+  process.env.SUPABASE_URL || "https://mktrthxggufposxyubuh.supabase.co", 
+  process.env.SUPABASE_KEY || "sb_publishable_hlO_nQq2lkuXACKh9awggg_7X0opSBf"
 //   process.env.SUPABASE_URL || "https://zpgcldllammzlxkktpfv.supabase.co", 
 //   process.env.SUPABASE_KEY || "sb_publishable_GT0CtQWcAdRGNfGGPd5GVg_zubsqSyy"
 )
