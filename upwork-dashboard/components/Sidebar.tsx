@@ -9,6 +9,7 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
   const [auth, setAuth] = useState({ isConnected: false, email: "" });
   const [showModal, setShowModal] = useState(false);
   const [credentials, setCredentials] = useState({ email: "", password: "" });
+  const [isOpen, setIsOpen] = useState(false);
 
   const checkAuth = async () => {
     try {
@@ -39,7 +40,6 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
     checkAuth();
   };
 
-  // --- SARE MENUS YAHAN HAIN ---
   const menuItems = [
     { name: "Dashboard", href: "/", icon: "M4 6h16M4 12h16M4 18h16" },
     { name: "My Portfolio", href: "/projects", icon: "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" },
@@ -50,103 +50,136 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
   ];
 
   return (
-    <aside className="fixed left-0 top-0 hidden h-screen w-72 flex-col border-r border-slate-800/60 bg-[#0B1120] lg:flex shadow-2xl z-40">
-      
-      {/* Login Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-          <div className="bg-[#0B1120] border border-slate-800 w-full max-w-md rounded-[2.5rem] p-10 shadow-2xl">
-            <h2 className="text-2xl font-black text-white mb-2">Connect Upwork</h2>
-            <p className="text-slate-500 text-xs mb-8 uppercase tracking-widest font-bold">Remote Scraper Authorization</p>
-            <div className="space-y-4">
-              <input 
-                type="email" placeholder="Upwork Email" 
-                className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 outline-none focus:border-emerald-500 text-white transition-all"
-                onChange={(e) => setCredentials({...credentials, email: e.target.value})}
-              />
-              <input 
-                type="password" placeholder="Password" 
-                className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 outline-none focus:border-emerald-500 text-white transition-all"
-                onChange={(e) => setCredentials({...credentials, password: e.target.value})}
-              />
-              <button onClick={handleConnect} className="w-full bg-emerald-600 py-4 rounded-2xl font-black hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-900/20">AUTHORIZE & CONNECT</button>
-              <button onClick={() => setShowModal(false)} className="w-full text-slate-500 text-xs font-bold py-2 hover:text-slate-300 transition-colors">CANCEL</button>
-            </div>
+    <>
+      {/* Mobile Header Toggle */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#0B1120] border-b border-slate-800 z-40 flex items-center justify-between px-6">
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 flex items-center justify-center rounded-lg bg-emerald-600 shadow-lg">
+            <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
           </div>
+          <span className="text-lg font-black tracking-tighter uppercase text-white">Job<span className="text-emerald-500">Pulse</span></span>
         </div>
+        <button onClick={() => setIsOpen(true)} className="text-slate-400 hover:text-white p-2">
+          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Overlay */}
+      {isOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] lg:hidden" onClick={() => setIsOpen(false)} />
       )}
 
-      {/* Logo Section */}
-      <div className="flex h-24 items-center gap-4 px-8 border-b border-slate-800/50">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-600 shadow-lg rotate-3">
-          <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+      {/* Sidebar Aside */}
+      <aside className={`fixed left-0 top-0 h-screen w-72 flex-col border-r border-slate-800/60 bg-[#0B1120] flex shadow-2xl z-[70] transition-transform duration-300 lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        
+        {/* CLOSE BUTTON (TOP RIGHT OF SIDEBAR) */}
+        <button 
+          onClick={() => setIsOpen(false)} 
+          className="lg:hidden absolute top-6 right-6 text-slate-500 hover:text-white p-2 bg-slate-800/50 rounded-xl transition-colors"
+        >
+          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
           </svg>
-        </div>
-        <span className="text-2xl font-black tracking-tighter uppercase text-white">Job<span className="text-emerald-500">Pulse</span></span>
-      </div>
+        </button>
 
-      {/* Navigation Links */}
-      <nav className="flex-1 p-6 space-y-2 overflow-y-auto custom-scrollbar">
-        {menuItems.map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <Link 
-              key={item.name} 
-              href={item.href} 
-              className={`flex items-center gap-3 rounded-2xl px-5 py-4 font-bold transition-all ${
-                isActive 
-                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-inner" 
-                : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
-              }`}
-            >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
-              </svg>
-              {item.name}
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* Bottom Auth Section */}
-      <div className="p-6 border-t border-slate-800/50 space-y-4">
-        {auth.isConnected ? (
-          <div className="space-y-3">
-            <div className="bg-emerald-500/5 border border-emerald-500/20 p-4 rounded-2xl">
-              <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1">Active Session</p>
-              <p className="text-xs font-bold text-slate-300 truncate">{auth.email}</p>
+        {/* Login Modal */}
+        {showModal && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+            <div className="bg-[#0B1120] border border-slate-800 w-full max-w-md rounded-[2rem] p-6 md:p-10 shadow-2xl">
+              <h2 className="text-2xl font-black text-white mb-2">Connect Upwork</h2>
+              <p className="text-slate-500 text-xs mb-8 uppercase tracking-widest font-bold">Remote Scraper Authorization</p>
+              <div className="space-y-4">
+                <input 
+                  type="email" placeholder="Upwork Email" 
+                  className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 outline-none focus:border-emerald-500 text-white transition-all"
+                  onChange={(e) => setCredentials({...credentials, email: e.target.value})}
+                />
+                <input 
+                  type="password" placeholder="Password" 
+                  className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 outline-none focus:border-emerald-500 text-white transition-all"
+                  onChange={(e) => setCredentials({...credentials, password: e.target.value})}
+                />
+                <button onClick={handleConnect} className="w-full bg-emerald-600 py-4 rounded-2xl font-black hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-900/20">AUTHORIZE & CONNECT</button>
+                <button onClick={() => setShowModal(false)} className="w-full text-slate-500 text-xs font-bold py-2 hover:text-slate-300 transition-colors">CANCEL</button>
+              </div>
             </div>
-            <button 
-              onClick={handleDisconnect} 
-              className="w-full bg-red-500/10 text-red-500 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all"
-            >
-              Terminate Connection
-            </button>
           </div>
-        ) : (
-          <button 
-            onClick={() => setShowModal(true)} 
-            className="w-full bg-emerald-600 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-xl shadow-emerald-900/20"
-          >
-            Connect Upwork
-          </button>
         )}
 
-        {/* Sync Status Indicator */}
-        <div className="flex items-center justify-center gap-2 pt-2">
-          <div className={`h-1.5 w-1.5 rounded-full ${isSyncing ? 'bg-amber-400 animate-pulse' : 'bg-emerald-500'}`} />
-          <span className="text-[9px] font-black uppercase tracking-widest text-slate-600">
-            {isSyncing ? 'Syncing Engine' : 'Engine Stable'}
-          </span>
+        {/* Logo Section */}
+        <div className="flex h-24 items-center gap-4 px-8 border-b border-slate-800/50">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-600 shadow-lg rotate-3">
+            <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <span className="text-2xl font-black tracking-tighter uppercase text-white">Job<span className="text-emerald-500">Pulse</span></span>
         </div>
-      </div>
 
-      <style jsx>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
-      `}</style>
-    </aside>
+        {/* Navigation Links */}
+        <nav className="flex-1 p-6 space-y-2 overflow-y-auto custom-scrollbar">
+          {menuItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link 
+                key={item.name} 
+                href={item.href} 
+                onClick={() => setIsOpen(false)}
+                className={`flex items-center gap-3 rounded-2xl px-5 py-4 font-bold transition-all ${
+                  isActive 
+                  ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-inner" 
+                  : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                }`}
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
+                </svg>
+                {item.name}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Bottom Auth Section */}
+        <div className="p-6 border-t border-slate-800/50 space-y-4">
+          {auth.isConnected ? (
+            <div className="space-y-3">
+              <div className="bg-emerald-500/5 border border-emerald-500/20 p-4 rounded-2xl">
+                <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1">Active Session</p>
+                <p className="text-xs font-bold text-slate-300 truncate">{auth.email}</p>
+              </div>
+              <button 
+                onClick={handleDisconnect} 
+                className="w-full bg-red-500/10 text-red-500 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all"
+              >
+                Terminate Connection
+              </button>
+            </div>
+          ) : (
+            <button 
+              onClick={() => setShowModal(true)} 
+              className="w-full bg-emerald-600 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-xl shadow-emerald-900/20"
+            >
+              Connect Upwork
+            </button>
+          )}
+
+          <div className="flex items-center justify-center gap-2 pt-2">
+            <div className={`h-1.5 w-1.5 rounded-full ${isSyncing ? 'bg-amber-400 animate-pulse' : 'bg-emerald-500'}`} />
+            <span className="text-[9px] font-black uppercase tracking-widest text-slate-600">
+              {isSyncing ? 'Syncing Engine' : 'Engine Stable'}
+            </span>
+          </div>
+        </div>
+
+        <style jsx>{`
+          .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+          .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+          .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        `}</style>
+      </aside>
+    </>
   );
 }

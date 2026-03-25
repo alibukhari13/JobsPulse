@@ -7,7 +7,6 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from 
 import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-// --- Individual Sortable Item Component ---
 function SortableSection({ id, s, index, updateSection, removeSection, saveSingle }: any) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: id });
   const [isSaving, setIsSaving] = useState(false);
@@ -26,33 +25,33 @@ function SortableSection({ id, s, index, updateSection, removeSection, saveSingl
   };
 
   return (
-    <div ref={setNodeRef} style={style} className={`group bg-[#0B1120] border ${isDragging ? 'border-emerald-500 shadow-2xl' : 'border-slate-800/60'} p-8 rounded-[3rem] flex flex-col gap-6 transition-all duration-300 mb-6`}>
+    <div ref={setNodeRef} style={style} className={`group bg-[#0B1120] border ${isDragging ? 'border-emerald-500 shadow-2xl' : 'border-slate-800/60'} p-5 md:p-8 rounded-[1.5rem] md:rounded-[3rem] flex flex-col gap-4 md:gap-6 transition-all duration-300 mb-4 md:mb-6`}>
       
-      <div className="flex items-start gap-6">
+      <div className="flex flex-col md:flex-row items-start gap-4 md:gap-6">
         {/* Drag Handle */}
-        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-4 bg-slate-900 rounded-2xl text-slate-600 hover:text-emerald-500 transition-colors shadow-inner">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 8h16M4 16h16" /></svg>
+        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-3 md:p-4 bg-slate-900 rounded-xl md:rounded-2xl text-slate-600 hover:text-emerald-500 transition-colors shadow-inner self-start">
+          <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 8h16M4 16h16" /></svg>
         </div>
         
-        <div className="flex-1 space-y-6">
-          <div className="flex justify-between items-center">
+        <div className="flex-1 w-full space-y-4 md:space-y-6">
+          <div className="flex justify-between items-center gap-2">
             <div className="space-y-1 flex-1">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 ml-1">Section Heading</label>
+              <label className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 ml-1">Section Heading</label>
               <input 
-                className="w-full bg-transparent border-b border-slate-800 py-2 text-2xl font-black text-white outline-none focus:border-emerald-500 transition-all"
+                className="w-full bg-transparent border-b border-slate-800 py-1 md:py-2 text-lg md:text-2xl font-black text-white outline-none focus:border-emerald-500 transition-all"
                 value={s.section_name}
                 onChange={(e) => updateSection(index, 'section_name', e.target.value)}
               />
             </div>
-            <button onClick={() => removeSection(s.id, index)} className="p-3 text-slate-800 hover:text-red-500 transition-all">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+            <button onClick={() => removeSection(s.id, index)} className="p-2 text-slate-800 hover:text-red-500 transition-all">
+              <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 ml-1">AI Logic Instructions</label>
+            <label className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 ml-1">AI Logic Instructions</label>
             <textarea 
-              className="w-full bg-slate-900/40 border border-slate-800/50 rounded-[2rem] p-6 text-slate-300 text-base outline-none focus:border-emerald-500/50 min-h-[120px] transition-all resize-y leading-relaxed"
+              className="w-full bg-slate-900/40 border border-slate-800/50 rounded-xl md:rounded-[2rem] p-4 md:p-6 text-sm md:text-base text-slate-300 outline-none focus:border-emerald-500/50 min-h-[100px] md:min-h-[120px] transition-all resize-y leading-relaxed"
               value={s.section_instruction}
               onChange={(e) => updateSection(index, 'section_instruction', e.target.value)}
             />
@@ -60,11 +59,10 @@ function SortableSection({ id, s, index, updateSection, removeSection, saveSingl
         </div>
       </div>
 
-      {/* Individual Save Button */}
       <div className="flex justify-end pt-2">
         <button 
           onClick={handleLocalSave}
-          className={`flex items-center gap-2 px-8 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${isSaving ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-emerald-500 hover:bg-emerald-600 hover:text-white'}`}
+          className={`flex items-center gap-2 px-6 md:px-8 py-2.5 md:py-3 rounded-xl text-[9px] md:text-[11px] font-black uppercase tracking-widest transition-all w-full md:w-auto justify-center ${isSaving ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-emerald-500 hover:bg-emerald-600 hover:text-white'}`}
         >
           {isSaving ? "Saved! ✓" : "Save This Section"}
         </button>
@@ -73,7 +71,6 @@ function SortableSection({ id, s, index, updateSection, removeSection, saveSingl
   );
 }
 
-// --- Main Component ---
 export default function FormatPage() {
   const [sections, setSections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,7 +92,6 @@ export default function FormatPage() {
         const oldIndex = items.findIndex(i => i.id === active.id);
         const newIndex = items.findIndex(i => i.id === over.id);
         const newOrder = arrayMove(items, oldIndex, newIndex);
-        // Auto-save new order
         saveBulk(newOrder);
         return newOrder;
       });
@@ -136,20 +132,20 @@ export default function FormatPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#020617] text-slate-100 font-sans antialiased">
+    <div className="flex min-h-screen bg-[#020617] text-slate-100 font-sans antialiased overflow-x-hidden">
       <Sidebar />
-      <main className="flex-1 p-4 lg:ml-72 lg:p-12">
-        <div className="mx-auto max-w-5xl">
-          <header className="mb-16 flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
+      <main className="flex-1 p-4 pt-24 lg:pt-12 lg:ml-72 lg:p-12 overflow-x-hidden">
+        <div className="mx-auto max-w-5xl w-full">
+          <header className="mb-10 md:mb-16 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
             <div>
-              <span className="text-[10px] font-black uppercase tracking-[0.5em] text-emerald-500">AI Logic Configuration</span>
-              <h1 className="text-7xl font-black text-white tracking-tighter leading-none mt-4">Structure</h1>
+              <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.5em] text-emerald-500">AI Logic Configuration</span>
+              <h1 className="text-4xl md:text-7xl font-black text-white tracking-tighter leading-none mt-2 md:mt-4">Structure</h1>
             </div>
           </header>
 
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={sections.map(s => s.id)} strategy={verticalListSortingStrategy}>
-              <div className="space-y-2">
+              <div className="space-y-2 w-full">
                 {sections.map((s, i) => (
                   <SortableSection 
                     key={s.id} 
@@ -165,9 +161,9 @@ export default function FormatPage() {
             </SortableContext>
           </DndContext>
 
-          <button onClick={addSection} disabled={loading} className="w-full mt-10 py-12 border-2 border-dashed border-slate-800 rounded-[3rem] text-slate-600 font-black hover:border-emerald-500/50 hover:text-emerald-500 transition-all uppercase tracking-[0.4em] text-xs flex items-center justify-center gap-4 group">
-            <div className="p-3 bg-slate-900 rounded-2xl group-hover:bg-emerald-500 group-hover:text-white transition-all">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
+          <button onClick={addSection} disabled={loading} className="w-full mt-8 md:mt-10 py-8 md:py-12 border-2 border-dashed border-slate-800 rounded-[1.5rem] md:rounded-[3rem] text-slate-600 font-black hover:border-emerald-500/50 hover:text-emerald-500 transition-all uppercase tracking-[0.2em] md:tracking-[0.4em] text-[10px] md:text-xs flex items-center justify-center gap-3 md:gap-4 group">
+            <div className="p-2 md:p-3 bg-slate-900 rounded-xl md:rounded-2xl group-hover:bg-emerald-500 group-hover:text-white transition-all">
+              <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
             </div>
             {loading ? "Syncing..." : "Add New Logic Block"}
           </button>
