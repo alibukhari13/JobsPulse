@@ -114,7 +114,7 @@ export default function Dashboard() {
             <div className="max-w-full">
               <div className="flex items-center gap-2 mb-3">
                 <span className="h-1 w-10 bg-emerald-500 rounded-full" />
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-500">Upwork Deep Scrape</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-500">Upwork Jobs</span>
               </div>
               <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight leading-none break-words">Recent Feed</h1>
             </div>

@@ -103,7 +103,7 @@ def scrape_cycle():
         profile_path = os.path.abspath("automation_profile")
         options.add_argument(f'--user-data-dir={profile_path}')
         
-        driver = uc.Chrome(options=options, version_main=144)
+        driver = uc.Chrome(options=options, version_main=146)
 
         if driver:
             driver.get('https://www.upwork.com/nx/find-work/')
