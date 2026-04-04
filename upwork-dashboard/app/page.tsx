@@ -1,3 +1,4 @@
+// app/page.tsx
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useState, useEffect, useCallback } from "react";
@@ -40,7 +41,7 @@ function JobTimer({ createdAt, expiryMins, onExpire }: { createdAt: string, expi
     return () => clearInterval(interval);
   }, [createdAt, expiryMins, onExpire]);
 
-  if (!isReady) return <div className="w-20 h-8 bg-slate-800/50 animate-pulse rounded-md"></div>;
+  if (!isReady) return <div className="w-20 h-8 bg-surface-light animate-pulse rounded-md"></div>;
 
   return (
     <div className="flex gap-1 items-center">
@@ -50,10 +51,10 @@ function JobTimer({ createdAt, expiryMins, onExpire }: { createdAt: string, expi
         { val: time.s, label: "S" }
       ].map((unit, i) => (
         <div key={i} className="flex flex-col items-center">
-          <div className="bg-slate-800 border border-slate-700 rounded-md w-7 h-7 md:w-8 md:h-8 flex items-center justify-center shadow-inner">
-            <span className="text-[10px] md:text-[11px] font-black text-emerald-400 font-mono">{unit.val}</span>
+          <div className="bg-surface border border-custom rounded-md w-7 h-7 md:w-8 md:h-8 flex items-center justify-center shadow-inner">
+            <span className="text-[10px] md:text-[11px] font-black text-accent font-mono">{unit.val}</span>
           </div>
-          <span className="text-[6px] font-black uppercase text-slate-500 mt-0.5">{unit.label}</span>
+          <span className="text-[6px] font-black uppercase text-muted mt-0.5">{unit.label}</span>
         </div>
       ))}
     </div>
@@ -104,7 +105,7 @@ export default function Dashboard() {
   const totalPages = Math.ceil(jobs.length / jobsPerPage);
 
   return (
-    <div className="flex min-h-screen bg-[#020617] text-slate-100 font-sans antialiased text-[14px] overflow-x-hidden">
+    <div className="flex min-h-screen bg-page text-primary font-sans antialiased text-[14px] overflow-x-hidden">
       {selectedJob && <ProposalModal job={selectedJob} onClose={() => setSelectedJob(null)} />}
       <Sidebar isSyncing={isSyncing} />
 
@@ -113,18 +114,18 @@ export default function Dashboard() {
           <header className="mb-8 md:mb-12 flex flex-col justify-between gap-6 md:flex-row md:items-end">
             <div className="max-w-full">
               <div className="flex items-center gap-2 mb-3">
-                <span className="h-1 w-10 bg-emerald-500 rounded-full" />
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-500">Upwork Jobs</span>
+                <span className="h-1 w-10 bg-accent rounded-full" />
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-accent">Upwork Jobs</span>
               </div>
-              <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight leading-none break-words">Recent Feed</h1>
+              <h1 className="text-4xl md:text-5xl font-black text-primary tracking-tight leading-none break-words">Recent Feed</h1>
             </div>
-            <div className="flex items-center gap-3 md:gap-6 bg-[#0B1120] p-2 md:p-3 rounded-[2rem] md:rounded-[2.5rem] border border-slate-800 shadow-2xl self-start md:self-auto max-w-full overflow-hidden">
-              <div className="px-4 md:px-8 py-2 text-center border-r border-slate-800">
-                <p className="text-2xl md:text-3xl font-black text-white leading-none">{jobs.length}</p>
-                <p className="text-[8px] md:text-[10px] font-bold uppercase text-slate-500 mt-2 tracking-widest">Jobs Found</p>
+            <div className="flex items-center gap-3 md:gap-6 bg-surface p-2 md:p-3 rounded-[2rem] md:rounded-[2.5rem] border border-custom shadow-2xl self-start md:self-auto max-w-full overflow-hidden">
+              <div className="px-4 md:px-8 py-2 text-center border-r border-custom">
+                <p className="text-2xl md:text-3xl font-black text-primary leading-none">{jobs.length}</p>
+                <p className="text-[8px] md:text-[10px] font-bold uppercase text-muted mt-2 tracking-widest">Jobs Found</p>
               </div>
-              <button onClick={fetchJobs} className="p-3 md:p-4 hover:bg-slate-800 rounded-full transition-all active:scale-90 group">
-                <svg className={`h-5 w-5 md:h-6 md:w-6 text-slate-400 group-hover:text-emerald-400 ${isSyncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+              <button onClick={fetchJobs} className="p-3 md:p-4 hover:bg-surface-light rounded-full transition-all active:scale-90 group">
+                <svg className={`h-5 w-5 md:h-6 md:w-6 text-secondary group-hover:text-accent ${isSyncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
               </button>
             </div>
           </header>
@@ -135,17 +136,17 @@ export default function Dashboard() {
               const isNew = job.posted_date?.toLowerCase().includes('second') || job.posted_date?.toLowerCase().includes('minute');
 
               return (
-                <div key={job.job_id} className="group relative rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-800/80 bg-[#0B1120] p-5 md:p-10 transition-all hover:border-emerald-500/40 hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] w-full overflow-hidden">
+                <div key={job.job_id} className="group relative rounded-[1.5rem] md:rounded-[2.5rem] border border-custom bg-surface p-5 md:p-10 transition-all hover:border-accent/40 hover:shadow-xl w-full overflow-hidden">
                   <div className="flex flex-col gap-4 md:gap-6">
                     <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                       <div className="flex flex-wrap gap-2 md:gap-3 items-center">
-                        {isNew && currentPage === 1 && <span className="bg-emerald-600 text-white text-[8px] md:text-[9px] font-black px-2 md:px-3 py-1 rounded-full shadow-lg animate-pulse">NEW ARRIVAL</span>}
+                        {isNew && currentPage === 1 && <span className="bg-accent text-white text-[8px] md:text-[9px] font-black px-2 md:px-3 py-1 rounded-full shadow-lg animate-pulse">NEW ARRIVAL</span>}
                         {job.is_verified === "Verified" ? (
-                          <span className="flex items-center gap-1 bg-blue-600/20 text-blue-400 text-[8px] md:text-[9px] font-black px-2 md:px-3 py-1 rounded-lg border border-blue-500/20 tracking-tighter uppercase">Verified</span>
+                          <span className="flex items-center gap-1 bg-accent/20 text-accent text-[8px] md:text-[9px] font-black px-2 md:px-3 py-1 rounded-lg border border-accent/20 tracking-tighter uppercase">Verified</span>
                         ) : (
-                          <span className="bg-red-900/20 text-red-400 text-[8px] md:text-[9px] font-black px-2 md:px-3 py-1 rounded-lg border border-red-500/20 tracking-tighter uppercase">Unverified</span>
+                          <span className="bg-danger/20 text-danger text-[8px] md:text-[9px] font-black px-2 md:px-3 py-1 rounded-lg border border-danger/20 tracking-tighter uppercase">Unverified</span>
                         )}
-                        <span className="bg-slate-800/50 text-slate-400 text-[8px] md:text-[9px] font-bold px-2 md:px-3 py-1 rounded-lg tracking-widest uppercase border border-slate-700/50">{job.client_location}</span>
+                        <span className="bg-surface-light text-secondary text-[8px] md:text-[9px] font-bold px-2 md:px-3 py-1 rounded-lg tracking-widest uppercase border border-custom">{job.client_location}</span>
                       </div>
                       
                       <div className="flex items-center gap-4 md:gap-6 w-full sm:w-auto justify-between sm:justify-end">
@@ -156,50 +157,50 @@ export default function Dashboard() {
                             onExpire={() => handleIgnore(job.job_id)} 
                           />
                         )}
-                        <button onClick={() => handleIgnore(job.job_id)} className="flex items-center gap-2 text-slate-600 hover:text-red-400 transition-all group/btn">
+                        <button onClick={() => handleIgnore(job.job_id)} className="flex items-center gap-2 text-muted hover:text-danger transition-all group/btn">
                           <span className="text-[10px] font-black uppercase tracking-widest hidden md:block opacity-0 group-hover/btn:opacity-100 transition-opacity">Ignore</span>
                           <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
                       </div>
                     </div>
 
-                    <a href={job.job_url} target="_blank" className="text-xl md:text-3xl font-black text-white hover:text-emerald-400 transition-colors leading-[1.2] md:leading-[1.1] tracking-tight break-words">{job.job_title}</a>
+                    <a href={job.job_url} target="_blank" className="text-xl md:text-3xl font-black text-primary hover:text-accent transition-colors leading-[1.2] md:leading-[1.1] tracking-tight break-words">{job.job_title}</a>
                     
                     <div className="flex flex-wrap gap-2">
                       {job.job_tags?.split(',').map((tag: string, i: number) => (
-                        <span key={i} className="bg-slate-900 text-slate-400 text-[9px] md:text-[10px] font-bold px-3 md:px-4 py-1 md:py-1.5 rounded-xl border border-slate-800 transition-colors max-w-full truncate">{tag.trim()}</span>
+                        <span key={i} className="bg-surface-light text-secondary text-[9px] md:text-[10px] font-bold px-3 md:px-4 py-1 md:py-1.5 rounded-xl border border-custom transition-colors max-w-full truncate">{tag.trim()}</span>
                       ))}
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 md:py-6 border-y border-slate-800/50">
-                      <div className="flex flex-col"><span className="text-[8px] md:text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Budget / Rate</span><span className="text-xs md:text-sm font-bold text-emerald-500 truncate">{job.budget}</span></div>
-                      <div className="flex flex-col"><span className="text-[8px] md:text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Duration</span><span className="text-xs md:text-sm font-bold text-slate-200 truncate">{job.project_duration}</span></div>
-                      <div className="flex flex-col"><span className="text-[8px] md:text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Proposals</span><span className="text-xs md:text-sm font-bold text-slate-200 truncate">{job.job_proposals}</span></div>
-                      <div className="flex flex-col"><span className="text-[8px] md:text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Posted</span><span className="text-xs md:text-sm font-bold text-slate-200 truncate">{job.posted_date}</span></div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 md:py-6 border-y border-custom">
+                      <div className="flex flex-col"><span className="text-[8px] md:text-[9px] font-black text-muted uppercase tracking-widest mb-1">Budget / Rate</span><span className="text-xs md:text-sm font-bold text-accent truncate">{job.budget}</span></div>
+                      <div className="flex flex-col"><span className="text-[8px] md:text-[9px] font-black text-muted uppercase tracking-widest mb-1">Duration</span><span className="text-xs md:text-sm font-bold text-primary truncate">{job.project_duration}</span></div>
+                      <div className="flex flex-col"><span className="text-[8px] md:text-[9px] font-black text-muted uppercase tracking-widest mb-1">Proposals</span><span className="text-xs md:text-sm font-bold text-primary truncate">{job.job_proposals}</span></div>
+                      <div className="flex flex-col"><span className="text-[8px] md:text-[9px] font-black text-muted uppercase tracking-widest mb-1">Posted</span><span className="text-xs md:text-sm font-bold text-primary truncate">{job.posted_date}</span></div>
                     </div>
 
                     <div className="relative">
-                      <p className={`text-slate-400 text-sm md:text-base leading-relaxed font-medium italic break-words ${!isExpanded ? 'line-clamp-3' : ''}`}>{job.job_description}</p>
+                      <p className={`text-secondary text-sm md:text-base leading-relaxed font-medium italic break-words ${!isExpanded ? 'line-clamp-3' : ''}`}>{job.job_description}</p>
                       {job.job_description?.length > 200 && (
-                        <button onClick={() => toggleDescription(job.job_id)} className="text-emerald-500 text-[10px] md:text-[11px] font-black uppercase mt-4 hover:text-emerald-400 transition-all flex items-center gap-2">
+                        <button onClick={() => toggleDescription(job.job_id)} className="text-accent text-[10px] md:text-[11px] font-black uppercase mt-4 hover:text-accent-hover transition-all flex items-center gap-2">
                           {isExpanded ? "↑ Collapse Details" : "↓ Expand Full Description"}
                         </button>
                       )}
                     </div>
 
-                    <div className="pt-4 flex flex-col md:flex-row justify-between items-center gap-6 border-t border-slate-800/50">
+                    <div className="pt-4 flex flex-col md:flex-row justify-between items-center gap-6 border-t border-custom">
                       <div className="flex items-center gap-2 self-start md:self-auto">
-                        <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Client Spent:</span>
-                        <span className="text-[10px] font-bold text-slate-400">{job.client_spent}</span>
+                        <span className="text-[9px] font-black text-muted uppercase tracking-widest">Client Spent:</span>
+                        <span className="text-[10px] font-bold text-secondary">{job.client_spent}</span>
                       </div>
                       <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
                         <button 
                           onClick={() => setSelectedJob(job)}
-                          className="bg-blue-600 hover:bg-blue-500 text-white px-6 md:px-8 py-3 md:py-4 rounded-xl md:rounded-[1.5rem] text-xs md:text-sm font-black transition-all shadow-xl shadow-blue-900/20 active:scale-95 uppercase tracking-widest text-center"
+                          className="bg-secondary-accent hover:bg-secondary-accent-hover text-white px-6 md:px-8 py-3 md:py-4 rounded-xl md:rounded-[1.5rem] text-xs md:text-sm font-black transition-all shadow-xl active:scale-95 uppercase tracking-widest text-center"
                         >
                           Generate Proposal ✨
                         </button>
-                        <a href={job.job_url} target="_blank" className="bg-slate-800 hover:bg-slate-700 text-white px-6 md:px-8 py-3 md:py-4 rounded-xl md:rounded-[1.5rem] text-xs md:text-sm font-black transition-all active:scale-95 uppercase tracking-widest text-center">Apply on Upwork</a>
+                        <a href={job.job_url} target="_blank" className="bg-surface-light hover:bg-border text-primary px-6 md:px-8 py-3 md:py-4 rounded-xl md:rounded-[1.5rem] text-xs md:text-sm font-black transition-all active:scale-95 uppercase tracking-widest text-center">Apply on Upwork</a>
                       </div>
                     </div>
                   </div>
@@ -210,13 +211,13 @@ export default function Dashboard() {
 
           {totalPages > 1 && (
             <div className="mt-12 md:mt-20 flex items-center justify-center gap-3 md:gap-4 pb-10 md:pb-20">
-              <button disabled={currentPage === 1} onClick={() => {setCurrentPage(currentPage - 1); window.scrollTo({top:0, behavior:'smooth'})}} className="h-10 w-10 md:h-14 md:w-14 flex items-center justify-center rounded-xl md:rounded-2xl border border-slate-800 bg-[#0B1120] text-slate-400 hover:border-emerald-500 transition-all disabled:opacity-10">
+              <button disabled={currentPage === 1} onClick={() => {setCurrentPage(currentPage - 1); window.scrollTo({top:0, behavior:'smooth'})}} className="h-10 w-10 md:h-14 md:w-14 flex items-center justify-center rounded-xl md:rounded-2xl border border-custom bg-surface text-secondary hover:border-accent transition-all disabled:opacity-10">
                 <svg className="h-5 w-5 md:h-6 md:w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" /></svg>
               </button>
-              <div className="px-4 md:px-10 h-10 md:h-14 flex items-center rounded-xl md:rounded-2xl border border-slate-800 bg-[#0B1120] text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest">
-                Page <span className="text-white mx-2 text-sm md:text-lg">{currentPage}</span> of {totalPages}
+              <div className="px-4 md:px-10 h-10 md:h-14 flex items-center rounded-xl md:rounded-2xl border border-custom bg-surface text-[10px] md:text-xs font-black text-secondary uppercase tracking-widest">
+                Page <span className="text-primary mx-2 text-sm md:text-lg">{currentPage}</span> of {totalPages}
               </div>
-              <button disabled={currentPage === totalPages} onClick={() => {setCurrentPage(currentPage + 1); window.scrollTo({top:0, behavior:'smooth'})}} className="h-10 w-10 md:h-14 md:w-14 flex items-center justify-center rounded-xl md:rounded-2xl border border-slate-800 bg-[#0B1120] text-slate-400 hover:border-emerald-500 transition-all disabled:opacity-10">
+              <button disabled={currentPage === totalPages} onClick={() => {setCurrentPage(currentPage + 1); window.scrollTo({top:0, behavior:'smooth'})}} className="h-10 w-10 md:h-14 md:w-14 flex items-center justify-center rounded-xl md:rounded-2xl border border-custom bg-surface text-secondary hover:border-accent transition-all disabled:opacity-10">
                 <svg className="h-5 w-5 md:h-6 md:w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" /></svg>
               </button>
             </div>
