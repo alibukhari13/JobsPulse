@@ -165,7 +165,6 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
           })}
         </nav>
 
-        {/* Bottom Auth Section + Theme Toggle */}
         <div className="p-6 border-t border-custom space-y-4">
           {/* Theme Toggle Button */}
           <button
