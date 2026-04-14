@@ -2,7 +2,7 @@ import { OpenAI } from 'openai';
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
-import { sessionOptions, SessionData } from '../../../lib/session';
+import { sessionOptions, SessionData } from '@/lib/session';
 import { cookies } from 'next/headers';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || '' });
