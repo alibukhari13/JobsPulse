@@ -81,7 +81,7 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
     if (!confirm("Disconnect Upwork account? Scraper will stop running.")) return;
     const res = await fetch("/api/auth/upwork", { method: "DELETE" });
     if (res.ok) {
-      checkAuth();
+      checkAuth(); // 👈 Turant state update karega
     } else {
       const data = await res.json();
       alert(data.error);
@@ -229,7 +229,7 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
                 )}
               </button>
 
-              {/* Upwork Connection - PRIVACY LOGIC APPLIED */}
+              {/* Upwork Connection */}
               {auth.isConnected ? (
                 <div className="space-y-2">
                   <div className="bg-accent/5 border border-accent/20 p-3 rounded-xl">

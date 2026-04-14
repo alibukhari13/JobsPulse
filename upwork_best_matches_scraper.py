@@ -80,12 +80,13 @@ def perform_upwork_login(driver, email, password):
 
 def scrape_cycle():
     driver = None
+    user_id = None  # for error handling reset
     try:
-        # 1. Fetch Upwork auth (email, password, user_id) - Fixed: use .execute() instead of .single()
+        # 1. Fetch Upwork auth and user_id
         auth_res = supabase.table('upwork_auth').select('email, password, user_id').eq('id', 1).execute()
         
         if not auth_res.data or not auth_res.data[0].get('email'):
-            logger.warning("STOPPED: No Upwork account connected in Dashboard.")
+            logger.warning("STOPPED: No Upwork account connected.")
             return
 
         creds = auth_res.data[0]
@@ -95,9 +96,23 @@ def scrape_cycle():
             return
 
         # Fetch settings for this user
-        settings_res = supabase.table('settings').select('batch_limit').eq('user_id', user_id).eq('id', 1).execute()
-        batch_limit = settings_res.data[0]['batch_limit'] if settings_res.data else 3
+        settings_res = supabase.table('settings').select('batch_limit, force_scrape').eq('user_id', user_id).eq('id', 1).execute()
+        if not settings_res.data:
+            logger.warning("No settings found for user. Using defaults.")
+            batch_limit = 3
+            force_scrape = False
+        else:
+            batch_limit = settings_res.data[0].get('batch_limit', 3)
+            force_scrape = settings_res.data[0].get('force_scrape', False)
+
         batch_limit = min(10, max(1, batch_limit))
+
+        # Wait logic: if not forced, wait 20s
+        if not force_scrape:
+            logger.info("Normal scheduled cycle. Waiting 20s...")
+            time.sleep(20)
+        else:
+            logger.info("⚡ Force scrape triggered! Starting immediately...")
 
         logger.info(f'--- STARTING CYCLE for user {user_id} (Batches: {batch_limit}) ---')
         options = uc.ChromeOptions()
@@ -226,17 +241,25 @@ def scrape_cycle():
                                 "user_id": user_id
                             }).execute()
                             new_saved += 1
-                    except Exception as e:
-                        logger.error(f"Failed to save job: {e}")
+                    except: pass
 
             logger.info(f"Cycle Done. New Jobs: {new_saved}")
+            
+            # Reset force_scrape flag
+            supabase.table('settings').update({'force_scrape': False}).eq('user_id', user_id).eq('id', 1).execute()
+            
             driver.quit()
     except Exception as e:
         logger.error(f"Global Error: {e}")
         if driver: driver.quit()
+        # Try to reset flag even on error
+        if user_id:
+            try:
+                supabase.table('settings').update({'force_scrape': False}).eq('user_id', user_id).eq('id', 1).execute()
+            except:
+                pass
 
 if __name__ == '__main__':
     while True:
         scrape_cycle()
-        logger.info("Waiting 20s for next fresh reload...")
-        time.sleep(20)
+        # The wait is now inside scrape_cycle, so no additional sleep here
