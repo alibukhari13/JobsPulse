@@ -1,54 +1,45 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import bcrypt from "bcryptjs";
-import { getIronSession } from "iron-session";
-import { sessionOptions, SessionData } from "@/lib/session";
-import { cookies } from "next/headers";
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import bcrypt from 'bcryptjs';
+import { getIronSession } from 'iron-session';
+import { sessionOptions, SessionData } from '@/lib/session';
+import { cookies } from 'next/headers';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_KEY!
-);
+const supabaseUrl = process.env.SUPABASE_URL || 'https://mktrthxggufposxyubuh.supabase.co';
+const supabaseKey = process.env.SUPABASE_KEY || 'sb_publishable_hlO_nQq2lkuXACKh9awggg_7X0opSBf';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await req.json();
+    const { email, password } = await request.json();
 
     if (!email || !password) {
-      return NextResponse.json(
-        { error: "Email and password required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Email and password required' }, { status: 400 });
     }
 
-    // Check if user already exists
-    const { data: existing } = await supabase
-      .from("users")
-      .select("id")
-      .eq("email", email)
+    const { data: existing, error: checkError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', email)
       .single();
 
     if (existing) {
-      return NextResponse.json(
-        { error: "User already exists" },
-        { status: 409 }
-      );
+      return NextResponse.json({ error: 'User already exists' }, { status: 409 });
     }
 
-    const password_hash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, 10);
 
-    const { data: newUser, error } = await supabase
-      .from("users")
-      .insert({ email, password_hash })
-      .select("id, email")
+    const { data: newUser, error: insertError } = await supabase
+      .from('users')
+      .insert({ email, password_hash: passwordHash })
+      .select('id, email')
       .single();
 
-    if (error) throw error;
+    if (insertError) throw insertError;
 
-    // ✅ Create default settings for this user
-    const { error: settingsError } = await supabase
-      .from("settings")
+    // Create default settings
+    await supabase
+      .from('settings')
       .upsert(
         {
           id: 1,
@@ -57,19 +48,10 @@ export async function POST(req: NextRequest) {
           batch_limit: 3,
           updated_at: new Date().toISOString(),
         },
-        { onConflict: "user_id, id" }
+        { onConflict: 'user_id, id' }
       );
 
-    if (settingsError) {
-      console.error("Failed to create default settings:", settingsError.message);
-      // Settings creation fail hone par bhi signup successful rahega
-    }
-
-    // Create session
-    const session = await getIronSession<{ user: SessionData }>(
-      await cookies(),
-      sessionOptions
-    );
+    const session = await getIronSession<{ user: SessionData }>(await cookies(), sessionOptions);
     session.user = {
       userId: newUser.id,
       email: newUser.email,
@@ -78,7 +60,8 @@ export async function POST(req: NextRequest) {
     await session.save();
 
     return NextResponse.json({ success: true, user: { email: newUser.email } });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
