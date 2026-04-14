@@ -1,6 +1,0 @@
-{
-  "buildCommand": "cd upwork-dashboard && npm run build",
-  "outputDirectory": "upwork-dashboard/.next",
-  "installCommand": "cd upwork-dashboard && npm install --legacy-peer-deps",
-  "framework": "nextjs"
-}
