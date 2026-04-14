@@ -14,11 +14,12 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // ✅ Use maybeSingle() to avoid error when table is empty
   const { data } = await supabase
     .from('upwork_auth')
     .select('email, user_id')
     .eq('id', 1)
-    .single();
+    .maybeSingle();
 
   const isConnected = !!data?.email;
   const connectedByMe = data?.user_id === session.user.userId;
@@ -42,7 +43,7 @@ export async function POST(request) {
       .from('upwork_auth')
       .select('user_id')
       .eq('id', 1)
-      .single();
+      .maybeSingle(); // ✅ Safer than .single()
 
     if (existing?.user_id && existing.user_id !== session.user.userId) {
       return NextResponse.json(
@@ -80,15 +81,24 @@ export async function DELETE() {
     .from('upwork_auth')
     .select('user_id')
     .eq('id', 1)
-    .single();
+    .maybeSingle(); // ✅
 
-  if (existing?.user_id !== session.user.userId) {
+  if (!existing || existing.user_id !== session.user.userId) {
     return NextResponse.json(
       { error: 'You cannot disconnect another user’s Upwork account' },
       { status: 403 }
     );
   }
 
-  await supabase.from('upwork_auth').update({ email: null, password: null, user_id: null }).eq('id', 1);
+  // ✅ DELETE the row instead of setting NULL (fixes NOT NULL constraint)
+  const { error } = await supabase
+    .from('upwork_auth')
+    .delete()
+    .eq('id', 1);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
   return NextResponse.json({ success: true });
 }
