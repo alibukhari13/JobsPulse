@@ -19,7 +19,7 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
   const [isOpen, setIsOpen] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [footerExpanded, setFooterExpanded] = useState(true); // <-- New state for collapsible footer
+  const [footerExpanded, setFooterExpanded] = useState(true);
 
   useEffect(() => {
     const stored = localStorage.getItem("theme");
@@ -229,14 +229,19 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
                 )}
               </button>
 
-              {/* Upwork Connection */}
+              {/* Upwork Connection - PRIVACY LOGIC APPLIED */}
               {auth.isConnected ? (
                 <div className="space-y-2">
                   <div className="bg-accent/5 border border-accent/20 p-3 rounded-xl">
-                    <p className="text-[9px] font-black text-accent uppercase tracking-widest mb-1">Active Upwork Session</p>
-                    <p className="text-xs font-bold text-primary truncate">{auth.email}</p>
-                    {!auth.connectedByMe && (
-                      <p className="text-[8px] text-warning mt-1">Connected by another user</p>
+                    <p className="text-[9px] font-black text-accent uppercase tracking-widest mb-1">
+                      Active Upwork Session
+                    </p>
+                    {auth.connectedByMe ? (
+                      <p className="text-xs font-bold text-primary truncate">{auth.email}</p>
+                    ) : (
+                      <p className="text-[10px] text-warning font-medium italic">
+                        ⚡ Connected by another user
+                      </p>
                     )}
                   </div>
                   {auth.connectedByMe && (
