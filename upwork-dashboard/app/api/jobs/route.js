@@ -1,51 +1,70 @@
-import { createClient } from '@supabase/supabase-js'
-import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
+import { getIronSession } from 'iron-session';
+import { sessionOptions, SessionData } from '@/lib/session';
+import { cookies } from 'next/headers';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL || "https://mktrthxggufposxyubuh.supabase.co", 
-  process.env.SUPABASE_KEY || "sb_publishable_hlO_nQq2lkuXACKh9awggg_7X0opSBf"
-//   process.env.SUPABASE_URL || "https://zpgcldllammzlxkktpfv.supabase.co", 
-//   process.env.SUPABASE_KEY || "sb_publishable_GT0CtQWcAdRGNfGGPd5GVg_zubsqSyy"
-)
+const supabaseUrl = process.env.SUPABASE_URL || "https://mktrthxggufposxyubuh.supabase.co";
+const supabaseKey = process.env.SUPABASE_KEY || "sb_publishable_hlO_nQq2lkuXACKh9awggg_7X0opSBf";
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-    try {
-        // 1. Pehle settings se asli expiry minutes uthao
-        const { data: settings } = await supabase.from('settings').select('expiry_minutes').eq('id', 1).single();
-        
-        // 2. Agar setting mil jaye aur 0 na ho, tabhi delete karo
-        if (settings && settings.expiry_minutes > 0) {
-            const expiryMins = settings.expiry_minutes;
-            
-            // UTC based cutoff calculation
-            const cutoffTime = new Date(Date.now() - (expiryMins * 60 * 1000)).toISOString();
-            
-            // Delete only if older than cutoff
-            await supabase.from('jobs').delete().lt('created_at', cutoffTime);
-        }
+  const session = await getIronSession(await cookies(), sessionOptions);
+  if (!session.user?.userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
-        // 3. Fetch remaining jobs
-        const { data: jobs, error } = await supabase
-            .from('jobs')
-            .select('*')
-            .order('id', { ascending: false });
+  try {
+    const { data: settings } = await supabase
+      .from('settings')
+      .select('expiry_minutes')
+      .eq('user_id', session.user.userId)
+      .eq('id', 1)
+      .single();
 
-        if (error) throw error; 
-        return NextResponse.json(jobs, { headers: { 'Cache-Control': 'no-store' } });
-    } catch (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    if (settings && settings.expiry_minutes > 0) {
+      const expiryMins = settings.expiry_minutes;
+      const cutoffTime = new Date(Date.now() - expiryMins * 60 * 1000).toISOString();
+      await supabase
+        .from('jobs')
+        .delete()
+        .eq('user_id', session.user.userId)
+        .lt('created_at', cutoffTime);
     }
+
+    const { data: jobs, error } = await supabase
+      .from('jobs')
+      .select('*')
+      .eq('user_id', session.user.userId)
+      .order('id', { ascending: false });
+
+    if (error) throw error;
+    return NextResponse.json(jobs, { headers: { 'Cache-Control': 'no-store' } });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
 
 export async function DELETE(request) {
-    try {
-        const { searchParams } = new URL(request.url);
-        const id = searchParams.get('id');
-        await supabase.from('jobs').delete().eq('job_id', id);
-        return NextResponse.json({ success: true });
-    } catch (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+  const session = await getIronSession(await cookies(), sessionOptions);
+  if (!session.user?.userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    await supabase
+      .from('jobs')
+      .delete()
+      .eq('job_id', id)
+      .eq('user_id', session.user.userId);
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

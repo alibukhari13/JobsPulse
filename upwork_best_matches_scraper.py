@@ -1,4 +1,3 @@
-# upwork_best_matches_scraper.py
 import setuptools
 import os
 import sys
@@ -18,9 +17,6 @@ from selenium.webdriver.common.action_chains import ActionChains
 # --- SUPABASE CONFIG ---
 SUPABASE_URL = "https://mktrthxggufposxyubuh.supabase.co"
 SUPABASE_KEY = "sb_publishable_hlO_nQq2lkuXACKh9awggg_7X0opSBf"
-
-# SUPABASE_URL = "https://zpgcldllammzlxkktpfv.supabase.co"
-# SUPABASE_KEY = "sb_publishable_GT0CtQWcAdRGNfGGPd5GVg_zubsqSyy"
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # --- LOGGING SETUP ---
@@ -85,19 +81,25 @@ def perform_upwork_login(driver, email, password):
 def scrape_cycle():
     driver = None
     try:
-        # 1. Fetch Dynamic Settings & Auth from Cloud
-        auth_res = supabase.table('upwork_auth').select('*').eq('id', 1).execute()
-        settings_res = supabase.table('settings').select('*').eq('id', 1).execute()
+        # 1. Fetch Upwork auth (email, password, user_id) - Fixed: use .execute() instead of .single()
+        auth_res = supabase.table('upwork_auth').select('email, password, user_id').eq('id', 1).execute()
         
-        if not auth_res.data:
-            logger.warning("STOPPED: No account connected in Dashboard.")
+        if not auth_res.data or not auth_res.data[0].get('email'):
+            logger.warning("STOPPED: No Upwork account connected in Dashboard.")
             return
 
         creds = auth_res.data[0]
+        user_id = creds.get('user_id')
+        if not user_id:
+            logger.warning("STOPPED: Upwork auth has no associated user_id.")
+            return
+
+        # Fetch settings for this user
+        settings_res = supabase.table('settings').select('batch_limit').eq('user_id', user_id).eq('id', 1).execute()
         batch_limit = settings_res.data[0]['batch_limit'] if settings_res.data else 3
         batch_limit = min(10, max(1, batch_limit))
 
-        logger.info(f'--- STARTING CYCLE (Batches: {batch_limit}) ---')
+        logger.info(f'--- STARTING CYCLE for user {user_id} (Batches: {batch_limit}) ---')
         options = uc.ChromeOptions()
         options.add_argument('--start-maximized')
         profile_path = os.path.abspath("automation_profile")
@@ -211,7 +213,7 @@ def scrape_cycle():
                 job_id = item['url'].split('~')[-1].strip('/')
                 if any(k in (item['title'] + item['text']).lower() for k in ['web', 'dev', 'html', 'js', 'react', 'api', 'node', 'php', 'laravel', 'shopify', 'wordpress', 'figma']):
                     try:
-                        exists = supabase.table('jobs').select('id').eq('job_id', job_id).execute()
+                        exists = supabase.table('jobs').select('id').eq('job_id', job_id).eq('user_id', user_id).execute()
                         if not exists.data:
                             logger.info(f"CLOUD SAVING: {item['title'][:35]} | {item['verified']}")
                             supabase.table('jobs').insert({
@@ -220,10 +222,12 @@ def scrape_cycle():
                                 "job_tags": item['tags'], "job_proposals": item['proposals'],
                                 "client_location": item['location'], "client_spent": item['spent'],
                                 "is_verified": item['verified'], "budget": item['budget'], 
-                                "experience_level": item['experience'], "project_duration": item['duration']
+                                "experience_level": item['experience'], "project_duration": item['duration'],
+                                "user_id": user_id
                             }).execute()
                             new_saved += 1
-                    except: pass
+                    except Exception as e:
+                        logger.error(f"Failed to save job: {e}")
 
             logger.info(f"Cycle Done. New Jobs: {new_saved}")
             driver.quit()

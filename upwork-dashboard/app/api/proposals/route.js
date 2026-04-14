@@ -1,55 +1,87 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { getIronSession } from 'iron-session';
+import { sessionOptions, SessionData } from '@/lib/session';
+import { cookies } from 'next/headers';
 
-const supabase = createClient(
-   process.env.SUPABASE_URL || "https://mktrthxggufposxyubuh.supabase.co", 
-  process.env.SUPABASE_KEY || "sb_publishable_hlO_nQq2lkuXACKh9awggg_7X0opSBf"
-//   process.env.SUPABASE_URL || "https://zpgcldllammzlxkktpfv.supabase.co", 
-//   process.env.SUPABASE_KEY || "sb_publishable_GT0CtQWcAdRGNfGGPd5GVg_zubsqSyy"
-);
+const supabaseUrl = process.env.SUPABASE_URL || "https://mktrthxggufposxyubuh.supabase.co";
+const supabaseKey = process.env.SUPABASE_KEY || "sb_publishable_hlO_nQq2lkuXACKh9awggg_7X0opSBf";
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function GET() {
-    try {
-        const { data, error } = await supabase.from('proposals').select('*').order('updated_at', { ascending: false });
-        if (error) throw error;
-        return NextResponse.json(data || []);
-    } catch (error) {
-        console.error("GET Error:", error.message);
-        return NextResponse.json([]);
-    }
+  const session = await getIronSession(await cookies(), sessionOptions);
+  if (!session.user?.userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('proposals')
+      .select('*')
+      .eq('user_id', session.user.userId)
+      .order('updated_at', { ascending: false });
+    if (error) throw error;
+    return NextResponse.json(data || []);
+  } catch (err) {
+    console.error("GET Error:", err instanceof Error ? err.message : err);
+    return NextResponse.json([]);
+  }
 }
 
-export async function POST(req) {
-    try {
-        const body = await req.json();
-        console.log("Saving Proposal for:", body.jobId);
+export async function POST(request) {
+  const session = await getIronSession(await cookies(), sessionOptions);
+  if (!session.user?.userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
-        const { data, error } = await supabase.from('proposals').upsert({
-            job_id: body.jobId,
-            job_title: body.jobTitle,
-            proposal_text: body.proposalText,
-            updated_at: new Date().toISOString()
-        }, { onConflict: 'job_id' }).select();
+  try {
+    const body = await request.json();
+    console.log("Saving Proposal for:", body.jobId);
 
-        if (error) {
-            console.error("Supabase Insert Error:", error.message);
-            throw error;
-        }
-        
-        return NextResponse.json(data);
-    } catch (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    const { data, error } = await supabase
+      .from('proposals')
+      .upsert(
+        {
+          job_id: body.jobId,
+          job_title: body.jobTitle,
+          proposal_text: body.proposalText,
+          user_id: session.user.userId,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'job_id, user_id' }
+      )
+      .select();
+
+    if (error) {
+      console.error("Supabase Insert Error:", error.message);
+      throw error;
     }
+
+    return NextResponse.json(data);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
 
-export async function DELETE(req) {
-    try {
-        const { searchParams } = new URL(req.url);
-        const id = searchParams.get('id');
-        const { error } = await supabase.from('proposals').delete().eq('id', id);
-        if (error) throw error;
-        return NextResponse.json({ success: true });
-    } catch (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+export async function DELETE(request) {
+  const session = await getIronSession(await cookies(), sessionOptions);
+  if (!session.user?.userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    const { error } = await supabase
+      .from('proposals')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', session.user.userId);
+    if (error) throw error;
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
