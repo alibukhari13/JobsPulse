@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import { getIronSession } from 'iron-session';
-import { sessionOptions, SessionData } from '@/lib/session';
 import { cookies } from 'next/headers';
+import { sessionOptions, SessionData } from '../../../../lib/session';
 
 const supabaseUrl = process.env.SUPABASE_URL || 'https://mktrthxggufposxyubuh.supabase.co';
 const supabaseKey = process.env.SUPABASE_KEY || 'sb_publishable_hlO_nQq2lkuXACKh9awggg_7X0opSBf';
