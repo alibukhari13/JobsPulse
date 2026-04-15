@@ -1,8 +1,10 @@
-# .gitignore 
-
 # Sqlite
 *.db
-automation_profile/
+
+# Scraper automation profiles (wildcard)
+automation_profile*/
+chrome_profile/
+*.log
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -31,8 +33,6 @@ var/
 *.egg
 
 # PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
 
@@ -67,12 +67,19 @@ build/
 
 # Environment 
 .env
+.env.local
+.env.production
 .venv
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Next.js
+.next/
+out/
+node_modules/
 
 # Sphinx documentation
 docs/_build/
@@ -86,7 +93,6 @@ target/
 # Custom
 bin/
 *.csv
-*.log
 log/
 tmp/
 config.py
@@ -127,4 +133,6 @@ atlassian-ide-plugin.xml
 
 # Others
 *.swp
-datasets/
+*.swo
+*~
+.DS_Store

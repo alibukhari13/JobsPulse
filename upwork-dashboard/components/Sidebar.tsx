@@ -7,7 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 interface AuthStatus {
   isConnected: boolean;
   email: string | null;
-  connectedByMe: boolean;
+  connectedByMe: boolean; // still present but always true when connected
 }
 
 export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) {
@@ -81,7 +81,7 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
     if (!confirm("Disconnect Upwork account? Scraper will stop running.")) return;
     const res = await fetch("/api/auth/upwork", { method: "DELETE" });
     if (res.ok) {
-      checkAuth(); // 👈 Turant state update karega
+      checkAuth();
     } else {
       const data = await res.json();
       alert(data.error);
@@ -229,29 +229,21 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
                 )}
               </button>
 
-              {/* Upwork Connection */}
+              {/* Upwork Connection - Simplified for multi-user */}
               {auth.isConnected ? (
                 <div className="space-y-2">
                   <div className="bg-accent/5 border border-accent/20 p-3 rounded-xl">
                     <p className="text-[9px] font-black text-accent uppercase tracking-widest mb-1">
                       Active Upwork Session
                     </p>
-                    {auth.connectedByMe ? (
-                      <p className="text-xs font-bold text-primary truncate">{auth.email}</p>
-                    ) : (
-                      <p className="text-[10px] text-warning font-medium italic">
-                        ⚡ Connected by another user
-                      </p>
-                    )}
+                    <p className="text-xs font-bold text-primary truncate">{auth.email}</p>
                   </div>
-                  {auth.connectedByMe && (
-                    <button 
-                      onClick={handleDisconnect} 
-                      className="w-full bg-danger/10 text-danger py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-danger hover:text-white transition-all"
-                    >
-                      Disconnect Upwork
-                    </button>
-                  )}
+                  <button 
+                    onClick={handleDisconnect} 
+                    className="w-full bg-danger/10 text-danger py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-danger hover:text-white transition-all"
+                  >
+                    Disconnect Upwork
+                  </button>
                 </div>
               ) : (
                 <button 

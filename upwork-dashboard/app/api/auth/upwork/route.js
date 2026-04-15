@@ -14,19 +14,21 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // ✅ Use maybeSingle() to avoid error when table is empty
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('upwork_auth')
-    .select('email, user_id')
-    .eq('id', 1)
+    .select('email')
+    .eq('user_id', session.user.userId)
     .maybeSingle();
 
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
   const isConnected = !!data?.email;
-  const connectedByMe = data?.user_id === session.user.userId;
   return NextResponse.json({
     isConnected,
     email: data?.email || null,
-    connectedByMe,
+    connectedByMe: isConnected,
   });
 }
 
@@ -39,29 +41,17 @@ export async function POST(request) {
   try {
     const { email, password } = await request.json();
 
-    const { data: existing } = await supabase
+    const { error } = await supabase
       .from('upwork_auth')
-      .select('user_id')
-      .eq('id', 1)
-      .maybeSingle(); // ✅ Safer than .single()
-
-    if (existing?.user_id && existing.user_id !== session.user.userId) {
-      return NextResponse.json(
-        { error: 'Another user already connected Upwork. They must disconnect first.' },
-        { status: 403 }
+      .upsert(
+        {
+          user_id: session.user.userId,
+          email,
+          password,
+          updated_at: new Date(),
+        },
+        { onConflict: 'user_id' }
       );
-    }
-
-    const { data, error } = await supabase
-      .from('upwork_auth')
-      .upsert({
-        id: 1,
-        email,
-        password,
-        user_id: session.user.userId,
-        updated_at: new Date(),
-      })
-      .select();
 
     if (error) throw error;
     return NextResponse.json({ success: true });
@@ -77,24 +67,10 @@ export async function DELETE() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { data: existing } = await supabase
-    .from('upwork_auth')
-    .select('user_id')
-    .eq('id', 1)
-    .maybeSingle(); // ✅
-
-  if (!existing || existing.user_id !== session.user.userId) {
-    return NextResponse.json(
-      { error: 'You cannot disconnect another user’s Upwork account' },
-      { status: 403 }
-    );
-  }
-
-  // ✅ DELETE the row instead of setting NULL (fixes NOT NULL constraint)
   const { error } = await supabase
     .from('upwork_auth')
     .delete()
-    .eq('id', 1);
+    .eq('user_id', session.user.userId);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
