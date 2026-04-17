@@ -17,12 +17,12 @@ export async function GET() {
   }
 
   try {
+    // Fetch expiry minutes from settings (new table structure – no 'id' column)
     const { data: settings } = await supabase
       .from('settings')
       .select('expiry_minutes')
       .eq('user_id', session.user.userId)
-      .eq('id', 1)
-      .single();
+      .maybeSingle();
 
     if (settings && settings.expiry_minutes > 0) {
       const expiryMins = settings.expiry_minutes;

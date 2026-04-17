@@ -23,12 +23,11 @@ export async function DELETE() {
 
     if (deleteError) throw deleteError;
 
-    // Set force_scrape flag to true so scraper runs immediately
+    // Set force_scrape flag to true (new table structure – only user_id)
     const { error: updateError } = await supabase
       .from('settings')
       .update({ force_scrape: true, updated_at: new Date().toISOString() })
-      .eq('user_id', session.user.userId)
-      .eq('id', 1);
+      .eq('user_id', session.user.userId);
 
     if (updateError) throw updateError;
 

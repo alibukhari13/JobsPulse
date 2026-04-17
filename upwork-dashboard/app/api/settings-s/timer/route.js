@@ -14,17 +14,13 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  try {
-    const { data } = await supabase
-      .from('settings')
-      .select('expiry_minutes')
-      .eq('user_id', session.user.userId)
-      .eq('id', 1)
-      .single();
-    return NextResponse.json(data || { expiry_minutes: 360 });
-  } catch {
-    return NextResponse.json({ expiry_minutes: 360 });
-  }
+  const { data } = await supabase
+    .from('settings')
+    .select('expiry_minutes')
+    .eq('user_id', session.user.userId)
+    .maybeSingle();
+
+  return NextResponse.json(data || { expiry_minutes: 360 });
 }
 
 export async function POST(request) {
@@ -38,12 +34,10 @@ export async function POST(request) {
     const { data, error } = await supabase
       .from('settings')
       .upsert({
-        id: 1,
-        expiry_minutes,
         user_id: session.user.userId,
+        expiry_minutes,
         updated_at: new Date().toISOString(),
-      })
-      .select();
+      }, { onConflict: 'user_id' });
 
     if (error) throw error;
     return NextResponse.json(data);

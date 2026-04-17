@@ -18,8 +18,8 @@ export async function GET() {
     .from('settings')
     .select('batch_limit')
     .eq('user_id', session.user.userId)
-    .eq('id', 1)
-    .single();
+    .maybeSingle();
+
   return NextResponse.json(data || { batch_limit: 3 });
 }
 
@@ -34,12 +34,10 @@ export async function POST(request) {
     const { data, error } = await supabase
       .from('settings')
       .upsert({
-        id: 1,
-        batch_limit,
         user_id: session.user.userId,
+        batch_limit,
         updated_at: new Date().toISOString(),
-      })
-      .select();
+      }, { onConflict: 'user_id' });
 
     if (error) throw error;
     return NextResponse.json(data);
