@@ -99,7 +99,7 @@ export default function Dashboard() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
-  const [isWaitingForNewJobs, setIsWaitingForNewJobs] = useState(false); // New state
+  const [isWaitingForNewJobs, setIsWaitingForNewJobs] = useState(false);
   const [expandedJobs, setExpandedJobs] = useState<Record<string, boolean>>({});
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const jobsPerPage = 8;
@@ -118,7 +118,6 @@ export default function Dashboard() {
       const data = await res.json();
       if (Array.isArray(data)) {
         setJobs(data);
-        // If we were waiting for new jobs and now we have some, stop waiting
         if (data.length > 0 && isWaitingForNewJobs) {
           setIsWaitingForNewJobs(false);
         }
@@ -130,24 +129,20 @@ export default function Dashboard() {
     }
   }, [isWaitingForNewJobs]);
 
-  // Start quick polling (every 3s) after clear
   const startQuickPolling = useCallback(() => {
     if (quickPollIntervalRef.current) clearInterval(quickPollIntervalRef.current);
     quickPollIntervalRef.current = setInterval(() => {
-      fetchJobs(true); // silent fetch
+      fetchJobs(true);
     }, 3000);
   }, [fetchJobs]);
 
-  // Stop quick polling and resume normal polling (30s)
   const stopQuickPollingAndResumeNormal = useCallback(() => {
     if (quickPollIntervalRef.current) {
       clearInterval(quickPollIntervalRef.current);
       quickPollIntervalRef.current = null;
     }
-    // Normal polling is already running via useEffect
   }, []);
 
-  // Effect to handle isWaitingForNewJobs changes
   useEffect(() => {
     if (isWaitingForNewJobs) {
       startQuickPolling();
@@ -156,7 +151,6 @@ export default function Dashboard() {
     }
   }, [isWaitingForNewJobs, startQuickPolling, stopQuickPollingAndResumeNormal]);
 
-  // Clear all jobs for current user and trigger fresh scrape
   const handleClearAll = async () => {
     if (!confirm("Are you sure you want to delete ALL jobs? This cannot be undone.")) return;
     setIsClearing(true);
@@ -165,10 +159,9 @@ export default function Dashboard() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to clear jobs");
       
-      // Clear current jobs and set waiting state
       setJobs([]);
       setCurrentPage(1);
-      setIsWaitingForNewJobs(true); // This will start quick polling and show skeleton
+      setIsWaitingForNewJobs(true);
       
       alert("All jobs cleared. Scraping new jobs...");
     } catch (err: any) {
@@ -179,13 +172,11 @@ export default function Dashboard() {
     }
   };
 
-  // Initial load
   useEffect(() => {
     fetchJobs();
     initialLoadRef.current = false;
   }, [fetchJobs]);
 
-  // Normal polling (30s)
   useEffect(() => {
     normalPollIntervalRef.current = setInterval(() => fetchJobs(true), 30000);
     return () => {
@@ -193,7 +184,6 @@ export default function Dashboard() {
     };
   }, [fetchJobs]);
 
-  // Cleanup quick polling on unmount
   useEffect(() => {
     return () => {
       if (quickPollIntervalRef.current) clearInterval(quickPollIntervalRef.current);
@@ -216,9 +206,7 @@ export default function Dashboard() {
   const currentJobs = jobs.slice((currentPage - 1) * jobsPerPage, currentPage * jobsPerPage);
   const totalPages = Math.ceil(jobs.length / jobsPerPage);
 
-  // Determine what to show in the main area
   const renderContent = () => {
-    // Case 1: Initial loading (first time, no jobs, syncing)
     if (jobs.length === 0 && isSyncing && !isWaitingForNewJobs) {
       return (
         <>
@@ -228,7 +216,6 @@ export default function Dashboard() {
         </>
       );
     }
-    // Case 2: Waiting for new jobs after clear (or first load if somehow stuck)
     if (isWaitingForNewJobs) {
       return (
         <>
@@ -238,7 +225,6 @@ export default function Dashboard() {
         </>
       );
     }
-    // Case 3: No jobs and not waiting (show empty state)
     if (currentJobs.length === 0) {
       return (
         <div className="text-center py-20 border-2 border-dashed border-custom rounded-[2rem] bg-surface/50">
@@ -246,7 +232,6 @@ export default function Dashboard() {
         </div>
       );
     }
-    // Case 4: Has jobs
     return currentJobs.map((job) => {
       const isExpanded = expandedJobs[job.job_id];
       const isNew = job.posted_date?.toLowerCase().includes('second') || job.posted_date?.toLowerCase().includes('minute');
@@ -261,6 +246,16 @@ export default function Dashboard() {
                   <span className="flex items-center gap-1 bg-accent/20 text-accent text-[8px] md:text-[9px] font-black px-2 md:px-3 py-1 rounded-lg border border-accent/20 tracking-tighter uppercase">Verified</span>
                 ) : (
                   <span className="bg-danger/20 text-danger text-[8px] md:text-[9px] font-black px-2 md:px-3 py-1 rounded-lg border border-danger/20 tracking-tighter uppercase">Unverified</span>
+                )}
+                {/* Experience Level Badge */}
+                {job.experience_level && (
+                  <span className={`text-[8px] md:text-[9px] font-black px-2 md:px-3 py-1 rounded-lg tracking-tighter uppercase border ${
+                    job.experience_level.toLowerCase().includes('expert') ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' :
+                    job.experience_level.toLowerCase().includes('intermediate') ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
+                    'bg-green-500/20 text-green-400 border-green-500/30'
+                  }`}>
+                    {job.experience_level}
+                  </span>
                 )}
                 <span className="bg-surface-light text-secondary text-[8px] md:text-[9px] font-bold px-2 md:px-3 py-1 rounded-lg tracking-widest uppercase border border-custom">{job.client_location}</span>
               </div>
