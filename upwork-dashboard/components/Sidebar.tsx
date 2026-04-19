@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // components/Sidebar.tsx
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
@@ -21,7 +22,8 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [footerExpanded, setFooterExpanded] = useState(true);
-  const [showUpworkPassword, setShowUpworkPassword] = useState(false); // ✅ new state for password visibility
+  const [showUpworkPassword, setShowUpworkPassword] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false); // ✅ new state for delete loading
 
   useEffect(() => {
     const stored = localStorage.getItem("theme");
@@ -76,7 +78,6 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
     }
     setShowModal(false);
     await checkAuth();
-    // ✅ Notify dashboard that connection state changed
     window.dispatchEvent(new Event('upwork-connection-change'));
     alert("Upwork Connected! Scraper is now authorized. 🚀");
   };
@@ -86,7 +87,6 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
     const res = await fetch("/api/auth/upwork", { method: "DELETE" });
     if (res.ok) {
       await checkAuth();
-      // ✅ Notify dashboard
       window.dispatchEvent(new Event('upwork-connection-change'));
     } else {
       const data = await res.json();
@@ -98,6 +98,27 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/login");
     router.refresh();
+  };
+
+  // ✅ Delete Account handler
+  const handleDeleteAccount = async () => {
+    if (!confirm("Are you absolutely sure? This will permanently delete your account, all settings, and all scraped jobs. This action cannot be undone.")) return;
+    if (!confirm("Please confirm again: Delete my account and all data forever.")) return;
+
+    setIsDeleting(true);
+    try {
+      const res = await fetch("/api/user/delete", { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete account");
+
+      alert("Your account has been deleted. You will be redirected to the login page.");
+      router.push("/login");
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message || "Something went wrong");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const menuItems = [
@@ -201,7 +222,7 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
           {/* Collapsible Content */}
           <div
             className={`overflow-hidden transition-all duration-300 ease-in-out ${
-              footerExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+              footerExpanded ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
             }`}
           >
             <div className="px-4 pb-4 space-y-3">
@@ -266,6 +287,15 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
                 className="w-full bg-surface-light hover:bg-border text-secondary py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
               >
                 Logout
+              </button>
+
+              {/* ✅ Delete Account Button */}
+              <button
+                onClick={handleDeleteAccount}
+                disabled={isDeleting}
+                className="w-full bg-danger/10 hover:bg-danger text-danger hover:text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50"
+              >
+                {isDeleting ? "Deleting..." : "Delete Account"}
               </button>
             </div>
           </div>
