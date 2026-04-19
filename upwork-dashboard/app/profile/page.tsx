@@ -87,7 +87,7 @@ export default function ProfilePage() {
   };
 
   const handleDisconnect = async () => {
-    if (!confirm("Disconnect Upwork account? Scraper will stop running.")) return;
+    if (!confirm("Disconnect Upwork account? fetching will stop running.")) return;
     const res = await fetch("/api/auth/upwork", { method: "DELETE" });
     if (res.ok) {
       await fetchProfileData();
@@ -105,7 +105,7 @@ export default function ProfilePage() {
   };
 
   const handleDeleteAccount = async () => {
-    if (!confirm("Are you absolutely sure? This will permanently delete your account, all settings, and all scraped jobs. This action cannot be undone.")) return;
+    if (!confirm("Are you absolutely sure? This will permanently delete your account, all settings, and all fetched jobs. This action cannot be undone.")) return;
     if (!confirm("Please confirm again: Delete my account and all data forever.")) return;
 
     setIsDeleting(true);
@@ -270,7 +270,7 @@ export default function ProfilePage() {
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
           <div className="bg-surface border border-custom w-full max-w-md rounded-[2rem] p-6 md:p-8 shadow-2xl">
             <h2 className="text-2xl font-black text-primary mb-2">Connect Upwork</h2>
-            <p className="text-secondary text-xs mb-6 uppercase tracking-widest font-bold">Remote Scraper Authorization</p>
+            <p className="text-secondary text-xs mb-6 uppercase tracking-widest font-bold"> Authorization</p>
             <div className="space-y-4">
               <input 
                 type="email" 
