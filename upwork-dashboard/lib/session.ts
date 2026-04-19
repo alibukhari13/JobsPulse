@@ -5,6 +5,7 @@ export interface SessionData {
   userId?: string;
   email?: string;
   isLoggedIn: boolean;
+  upworkConnected?: boolean; // ✅ New field
 }
 
 export const sessionOptions: SessionOptions = {
@@ -13,7 +14,7 @@ export const sessionOptions: SessionOptions = {
   cookieOptions: {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    maxAge: 60 * 60 * 24 * 7, // 1 week
+    maxAge: 60 * 60 * 24 * 7,
     sameSite: "lax",
     path: "/",
   },

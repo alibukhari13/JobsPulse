@@ -1,3 +1,4 @@
+// app/api/auth/logout/route.ts
 import { NextResponse } from "next/server";
 import { getIronSession } from "iron-session";
 import { sessionOptions } from "@/lib/session";

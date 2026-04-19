@@ -1,3 +1,5 @@
+// app/api/auth/upwork/route.js
+
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
@@ -54,6 +56,11 @@ export async function POST(request) {
       );
 
     if (error) throw error;
+
+    // ✅ Update session flag
+    session.user.upworkConnected = true;
+    await session.save();
+
     return NextResponse.json({ success: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
@@ -75,6 +82,10 @@ export async function DELETE() {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  // ✅ Update session flag
+  session.user.upworkConnected = false;
+  await session.save();
 
   return NextResponse.json({ success: true });
 }

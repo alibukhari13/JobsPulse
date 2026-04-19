@@ -1,3 +1,5 @@
+// app/page.tsx
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -102,12 +104,17 @@ export default function Dashboard() {
   const [isWaitingForNewJobs, setIsWaitingForNewJobs] = useState(false);
   const [expandedJobs, setExpandedJobs] = useState<Record<string, boolean>>({});
   const [selectedJob, setSelectedJob] = useState<any>(null);
+  const [upworkConnected, setUpworkConnected] = useState<boolean | null>(null);
   const jobsPerPage = 8;
   const initialLoadRef = useRef(true);
   const quickPollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const normalPollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchJobs = useCallback(async (silent = false) => {
+    if (!upworkConnected) {
+      setJobs([]);
+      return;
+    }
     if (!silent) setIsSyncing(true);
     try {
       const sRes = await fetch("/api/settings-s/timer");
@@ -127,7 +134,45 @@ export default function Dashboard() {
     } finally {
       if (!silent) setIsSyncing(false);
     }
-  }, [isWaitingForNewJobs]);
+  }, [upworkConnected, isWaitingForNewJobs]);
+
+  const checkUpworkConnection = useCallback(async () => {
+    try {
+      const res = await fetch("/api/auth/session");
+      if (res.ok) {
+        const data = await res.json();
+        const connected = data.user?.upworkConnected || false;
+        setUpworkConnected(connected);
+        return connected;
+      }
+    } catch (err) {
+      console.error("Session check failed");
+    }
+    return false;
+  }, []);
+
+  // Initial load and listen for connection changes
+  useEffect(() => {
+    const init = async () => {
+      const connected = await checkUpworkConnection();
+      if (connected) {
+        fetchJobs();
+      }
+      initialLoadRef.current = false;
+    };
+    init();
+
+    const handleConnectionChange = async () => {
+      const connected = await checkUpworkConnection();
+      if (connected) {
+        fetchJobs();
+      } else {
+        setJobs([]);
+      }
+    };
+    window.addEventListener('upwork-connection-change', handleConnectionChange);
+    return () => window.removeEventListener('upwork-connection-change', handleConnectionChange);
+  }, [checkUpworkConnection, fetchJobs]);
 
   const startQuickPolling = useCallback(() => {
     if (quickPollIntervalRef.current) clearInterval(quickPollIntervalRef.current);
@@ -173,11 +218,6 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    fetchJobs();
-    initialLoadRef.current = false;
-  }, [fetchJobs]);
-
-  useEffect(() => {
     normalPollIntervalRef.current = setInterval(() => fetchJobs(true), 30000);
     return () => {
       if (normalPollIntervalRef.current) clearInterval(normalPollIntervalRef.current);
@@ -207,6 +247,19 @@ export default function Dashboard() {
   const totalPages = Math.ceil(jobs.length / jobsPerPage);
 
   const renderContent = () => {
+    // ✅ If not connected to Upwork, show prompt
+    if (upworkConnected === false) {
+      return (
+        <div className="text-center py-20 border-2 border-dashed border-custom rounded-[2rem] bg-surface/50">
+          <svg className="mx-auto h-12 w-12 text-muted mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          <p className="text-muted font-bold uppercase tracking-widest text-sm mb-2">Upwork Not Connected</p>
+          <p className="text-secondary text-xs">Connect your Upwork account from the sidebar to view jobs.</p>
+        </div>
+      );
+    }
+
     if (jobs.length === 0 && isSyncing && !isWaitingForNewJobs) {
       return (
         <>
@@ -247,7 +300,6 @@ export default function Dashboard() {
                 ) : (
                   <span className="bg-danger/20 text-danger text-[8px] md:text-[9px] font-black px-2 md:px-3 py-1 rounded-lg border border-danger/20 tracking-tighter uppercase">Unverified</span>
                 )}
-                {/* Experience Level Badge */}
                 {job.experience_level && (
                   <span className={`text-[8px] md:text-[9px] font-black px-2 md:px-3 py-1 rounded-lg tracking-tighter uppercase border ${
                     job.experience_level.toLowerCase().includes('expert') ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' :
@@ -338,7 +390,6 @@ export default function Dashboard() {
                   </svg>
                 </button>
               </div>
-              {/* Clear All Button */}
               <button
                 onClick={handleClearAll}
                 disabled={isClearing || jobs.length === 0}

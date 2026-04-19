@@ -1,3 +1,4 @@
+//app/api/auth/signup/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
@@ -17,11 +18,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email and password required' }, { status: 400 });
     }
 
-    const { data: existing, error: checkError } = await supabase
+    const { data: existing } = await supabase
       .from('users')
       .select('id')
       .eq('email', email)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       return NextResponse.json({ error: 'User already exists' }, { status: 409 });
@@ -37,25 +38,23 @@ export async function POST(request: NextRequest) {
 
     if (insertError) throw insertError;
 
-    // Create default settings
+    // ✅ Create default settings for this user (new structure – only user_id)
     await supabase
       .from('settings')
-      .upsert(
-        {
-          id: 1,
-          user_id: newUser.id,
-          expiry_minutes: 360,
-          batch_limit: 3,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'user_id, id' }
-      );
+      .upsert({
+        user_id: newUser.id,
+        expiry_minutes: 360,
+        batch_limit: 3,
+        force_scrape: false,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' });
 
     const session = await getIronSession<{ user: SessionData }>(await cookies(), sessionOptions);
     session.user = {
       userId: newUser.id,
       email: newUser.email,
       isLoggedIn: true,
+      upworkConnected: false,   // ✅ New user hasn't connected yet
     };
     await session.save();
 

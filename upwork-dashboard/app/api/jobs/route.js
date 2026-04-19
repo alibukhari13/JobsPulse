@@ -1,3 +1,4 @@
+// app/api/jobs/clear/route.ts
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
@@ -16,8 +17,12 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // ✅ Block jobs if Upwork is not connected on this session
+  if (!session.user.upworkConnected) {
+    return NextResponse.json([], { headers: { 'Cache-Control': 'no-store' } });
+  }
+
   try {
-    // Fetch expiry minutes from settings (new table structure – no 'id' column)
     const { data: settings } = await supabase
       .from('settings')
       .select('expiry_minutes')
@@ -52,6 +57,11 @@ export async function DELETE(request) {
   const session = await getIronSession(await cookies(), sessionOptions);
   if (!session.user?.userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Also block delete if not connected
+  if (!session.user.upworkConnected) {
+    return NextResponse.json({ error: 'Upwork not connected' }, { status: 403 });
   }
 
   try {

@@ -1,3 +1,5 @@
+// app/api/jobs/clear/route.ts
+
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';

@@ -1,3 +1,4 @@
+// app/api/auth/login/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
@@ -28,11 +29,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
+    // ✅ Check if user has already connected Upwork
+    const { data: upworkAuth } = await supabase
+      .from('upwork_auth')
+      .select('user_id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
     const session = await getIronSession<{ user: SessionData }>(await cookies(), sessionOptions);
     session.user = {
       userId: user.id,
       email: user.email,
       isLoggedIn: true,
+      upworkConnected: !!upworkAuth,   // ✅ Set based on existing connection
     };
     await session.save();
 
