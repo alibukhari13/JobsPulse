@@ -151,7 +151,6 @@ export default function Dashboard() {
     return false;
   }, []);
 
-  // Initial load and listen for connection changes
   useEffect(() => {
     const init = async () => {
       const connected = await checkUpworkConnection();
@@ -246,8 +245,9 @@ export default function Dashboard() {
   const currentJobs = jobs.slice((currentPage - 1) * jobsPerPage, currentPage * jobsPerPage);
   const totalPages = Math.ceil(jobs.length / jobsPerPage);
 
+  // ✅ Updated renderContent with "Fetching jobs..." state
   const renderContent = () => {
-    // ✅ If not connected to Upwork, show prompt
+    // Case 1: Not connected to Upwork
     if (upworkConnected === false) {
       return (
         <div className="text-center py-20 border-2 border-dashed border-custom rounded-[2rem] bg-surface/50">
@@ -260,6 +260,7 @@ export default function Dashboard() {
       );
     }
 
+    // Case 2: Initial loading (syncing and no jobs, but not waiting for new jobs)
     if (jobs.length === 0 && isSyncing && !isWaitingForNewJobs) {
       return (
         <>
@@ -269,6 +270,8 @@ export default function Dashboard() {
         </>
       );
     }
+
+    // Case 3: Waiting for new jobs after clear (quick polling)
     if (isWaitingForNewJobs) {
       return (
         <>
@@ -278,13 +281,23 @@ export default function Dashboard() {
         </>
       );
     }
-    if (currentJobs.length === 0) {
+
+    // Case 4: Connected, not syncing, but jobs array is empty → Show fetching message
+    if (jobs.length === 0 && upworkConnected === true && !isSyncing) {
       return (
         <div className="text-center py-20 border-2 border-dashed border-custom rounded-[2rem] bg-surface/50">
-          <p className="text-muted font-bold uppercase tracking-widest text-sm">No jobs found</p>
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-accent/20 mb-4 animate-pulse">
+            <svg className="h-6 w-6 text-accent animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </div>
+          <p className="text-muted font-bold uppercase tracking-widest text-sm mb-2">Fetching Jobs...</p>
+          <p className="text-secondary text-xs">Please wait while we fetch the latest jobs from Upwork. This may take few minutes.</p>
         </div>
       );
     }
+
+    // Case 5: Has jobs
     return currentJobs.map((job) => {
       const isExpanded = expandedJobs[job.job_id];
       const isNew = job.posted_date?.toLowerCase().includes('second') || job.posted_date?.toLowerCase().includes('minute');

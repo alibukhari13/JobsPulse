@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// components/Sidebar.tsx
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 import { useState, useEffect } from "react";
@@ -23,7 +22,7 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [footerExpanded, setFooterExpanded] = useState(true);
   const [showUpworkPassword, setShowUpworkPassword] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false); // ✅ new state for delete loading
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("theme");
@@ -100,7 +99,6 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
     router.refresh();
   };
 
-  // ✅ Delete Account handler
   const handleDeleteAccount = async () => {
     if (!confirm("Are you absolutely sure? This will permanently delete your account, all settings, and all scraped jobs. This action cannot be undone.")) return;
     if (!confirm("Please confirm again: Delete my account and all data forever.")) return;
@@ -206,7 +204,7 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
           {/* Collapse Toggle Button */}
           <button
             onClick={() => setFooterExpanded(!footerExpanded)}
-            className="w-full flex items-center justify-between px-4 py-2 text-muted hover:text-primary transition-colors"
+            className="w-full flex items-center justify-between px-4 py-2.5 text-muted hover:text-primary transition-colors"
           >
             <span className="text-[9px] font-black uppercase tracking-widest">User Panel</span>
             <svg
@@ -256,7 +254,7 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
                 )}
               </button>
 
-              {/* Upwork Connection - Simplified for multi-user */}
+              {/* Upwork Connection */}
               {auth.isConnected ? (
                 <div className="space-y-2">
                   <div className="bg-accent/5 border border-accent/20 p-3 rounded-xl">
@@ -289,11 +287,11 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
                 Logout
               </button>
 
-              {/* ✅ Delete Account Button */}
+              {/* Delete Account Button – Dark Red */}
               <button
                 onClick={handleDeleteAccount}
                 disabled={isDeleting}
-                className="w-full bg-danger/10 hover:bg-danger text-danger hover:text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50"
+                className="w-full bg-danger hover:bg-danger-hover text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50 shadow-lg"
               >
                 {isDeleting ? "Deleting..." : "Delete Account"}
               </button>
