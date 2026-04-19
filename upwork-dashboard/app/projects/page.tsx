@@ -1,4 +1,3 @@
-// app/projects/page.tsx
 /* eslint-disable react-hooks/immutability */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
@@ -10,6 +9,16 @@ export default function ProjectsPage() {
   const [newProjects, setNewProjects] = useState([{ project_name: "", project_link: "", project_description: "" }]);
   const [editingProject, setEditingProject] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // ✅ Listen to sidebar collapse events
+  useEffect(() => {
+    const handleSidebarChange = (e: CustomEvent) => {
+      setSidebarCollapsed(e.detail.isCollapsed);
+    };
+    window.addEventListener('sidebar-collapsed-change', handleSidebarChange as EventListener);
+    return () => window.removeEventListener('sidebar-collapsed-change', handleSidebarChange as EventListener);
+  }, []);
 
   useEffect(() => { fetchProjects(); }, []);
 
@@ -76,8 +85,9 @@ export default function ProjectsPage() {
 
       <Sidebar />
 
-      <main className="flex-1 p-4 pt-24 lg:pt-12 lg:ml-72 lg:p-12 overflow-x-hidden">
-        <div className="mx-auto max-w-5xl w-full">
+      <main className={`flex-1 w-full p-4 pt-24 lg:pt-12 overflow-x-hidden transition-all duration-500 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'} lg:p-12`}>
+        {/* ✅ Responsive container width */}
+        <div className={`mx-auto w-full transition-all duration-500 ${sidebarCollapsed ? 'max-w-7xl' : 'max-w-5xl'}`}>
           <header className="mb-8 md:mb-12">
             <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-accent">Asset Management</span>
             <h1 className="text-4xl md:text-6xl font-black text-primary tracking-tighter leading-none mt-2 break-words">My Portfolio</h1>

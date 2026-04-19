@@ -1,5 +1,3 @@
-// app/page.tsx
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -105,10 +103,20 @@ export default function Dashboard() {
   const [expandedJobs, setExpandedJobs] = useState<Record<string, boolean>>({});
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [upworkConnected, setUpworkConnected] = useState<boolean | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
   const jobsPerPage = 8;
   const initialLoadRef = useRef(true);
   const quickPollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const normalPollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const handleSidebarChange = (e: CustomEvent) => {
+      setSidebarCollapsed(e.detail.isCollapsed);
+    };
+    window.addEventListener('sidebar-collapsed-change', handleSidebarChange as EventListener);
+    return () => window.removeEventListener('sidebar-collapsed-change', handleSidebarChange as EventListener);
+  }, []);
 
   const fetchJobs = useCallback(async (silent = false) => {
     if (!upworkConnected) {
@@ -245,22 +253,25 @@ export default function Dashboard() {
   const currentJobs = jobs.slice((currentPage - 1) * jobsPerPage, currentPage * jobsPerPage);
   const totalPages = Math.ceil(jobs.length / jobsPerPage);
 
-  // ✅ Updated renderContent with "Fetching jobs..." state
   const renderContent = () => {
-    // Case 1: Not connected to Upwork
     if (upworkConnected === false) {
       return (
-        <div className="text-center py-20 border-2 border-dashed border-custom rounded-[2rem] bg-surface/50">
+        <div className="text-center py-16 border-2 border-dashed border-custom rounded-[2rem] bg-surface/50">
           <svg className="mx-auto h-12 w-12 text-muted mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
-          <p className="text-muted font-bold uppercase tracking-widest text-sm mb-2">Upwork Not Connected</p>
-          <p className="text-secondary text-xs">Connect your Upwork account from the sidebar to view jobs.</p>
+          <p className="text-muted font-bold uppercase tracking-widest text-sm mb-3">Upwork Not Connected</p>
+          <p className="text-secondary text-xs mb-6">Connect your Upwork account to start scraping jobs.</p>
+          <button
+            onClick={() => window.dispatchEvent(new Event('open-upwork-modal'))}
+            className="bg-accent hover:bg-accent-hover text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-lg"
+          >
+            Connect Upwork
+          </button>
         </div>
       );
     }
 
-    // Case 2: Initial loading (syncing and no jobs, but not waiting for new jobs)
     if (jobs.length === 0 && isSyncing && !isWaitingForNewJobs) {
       return (
         <>
@@ -271,7 +282,6 @@ export default function Dashboard() {
       );
     }
 
-    // Case 3: Waiting for new jobs after clear (quick polling)
     if (isWaitingForNewJobs) {
       return (
         <>
@@ -282,7 +292,6 @@ export default function Dashboard() {
       );
     }
 
-    // Case 4: Connected, not syncing, but jobs array is empty → Show fetching message
     if (jobs.length === 0 && upworkConnected === true && !isSyncing) {
       return (
         <div className="text-center py-20 border-2 border-dashed border-custom rounded-[2rem] bg-surface/50">
@@ -297,7 +306,6 @@ export default function Dashboard() {
       );
     }
 
-    // Case 5: Has jobs
     return currentJobs.map((job) => {
       const isExpanded = expandedJobs[job.job_id];
       const isNew = job.posted_date?.toLowerCase().includes('second') || job.posted_date?.toLowerCase().includes('minute');
@@ -381,8 +389,8 @@ export default function Dashboard() {
       {selectedJob && <ProposalModal job={selectedJob} onClose={() => setSelectedJob(null)} />}
       <Sidebar isSyncing={isSyncing} />
 
-      <main className="flex-1 w-full p-4 pt-24 lg:pt-12 lg:ml-72 lg:p-12 overflow-x-hidden">
-        <div className="mx-auto max-w-5xl w-full">
+      <main className={`flex-1 w-full p-4 pt-24 lg:pt-12 overflow-x-hidden transition-all duration-500 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'} lg:p-12`}>
+        <div className={`mx-auto w-full transition-all duration-500 ${sidebarCollapsed ? 'max-w-7xl' : 'max-w-5xl'}`}>
           <header className="mb-8 md:mb-12 flex flex-col justify-between gap-6 md:flex-row md:items-end">
             <div className="max-w-full">
               <div className="flex items-center gap-2 mb-3">

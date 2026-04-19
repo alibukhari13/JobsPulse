@@ -1,4 +1,3 @@
-// app/batches/page.tsx
 "use client";
 import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
@@ -6,6 +5,16 @@ import Sidebar from "@/components/Sidebar";
 export default function ScraperSettings() {
   const [batches, setBatches] = useState(3);
   const [loading, setLoading] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // ✅ Listen to sidebar collapse events
+  useEffect(() => {
+    const handleSidebarChange = (e: CustomEvent) => {
+      setSidebarCollapsed(e.detail.isCollapsed);
+    };
+    window.addEventListener('sidebar-collapsed-change', handleSidebarChange as EventListener);
+    return () => window.removeEventListener('sidebar-collapsed-change', handleSidebarChange as EventListener);
+  }, []);
 
   useEffect(() => {
     fetch("/api/settings-s/batches")
@@ -39,13 +48,14 @@ export default function ScraperSettings() {
   return (
     <div className="flex min-h-screen bg-page text-primary font-sans antialiased overflow-x-hidden">
       <Sidebar />
-      <main className="flex-1 lg:ml-72 flex flex-col items-center justify-center p-4 pt-24 md:p-12 overflow-x-hidden">
-        <div className="w-full max-w-xl mb-8 md:mb-10 text-center">
-          <h1 className="text-3xl md:text-5xl font-black text-primary tracking-tighter mb-3 md:mb-4">Scraper Batches</h1>
-          <p className="text-secondary text-xs md:text-sm font-medium leading-relaxed">Define the crawling depth for each cycle.</p>
-        </div>
+      <main className={`flex-1 w-full p-4 pt-24 md:p-12 overflow-x-hidden transition-all duration-500 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'}`}>
+        <div className="flex flex-col items-center justify-center w-full h-full">
+          <div className="w-full max-w-xl mb-8 md:mb-10 text-center">
+            <h1 className="text-3xl md:text-5xl font-black text-primary tracking-tighter mb-3 md:mb-4">Scraper Batches</h1>
+            <p className="text-secondary text-xs md:text-sm font-medium leading-relaxed">Define the crawling depth for each cycle.</p>
+          </div>
 
-        <div className="w-full max-w-xl bg-surface border border-custom rounded-[2rem] md:rounded-[3.5rem] p-6 md:p-14 shadow-2xl">
+          <div className="w-full max-w-xl bg-surface border border-custom rounded-[2rem] md:rounded-[3.5rem] p-6 md:p-14 shadow-2xl">
             <div className="flex justify-between mb-8 md:mb-12 gap-1 md:gap-1.5">
               {[...Array(10)].map((_, i) => (
                 <div key={i} className={`h-1 md:h-1.5 flex-1 rounded-full transition-all duration-500 ${i < batches ? "bg-accent shadow-[0_0_10px_rgba(16,185,129,0.4)]" : "bg-border"}`} />
@@ -71,6 +81,7 @@ export default function ScraperSettings() {
             <button onClick={saveSettings} disabled={loading} className="w-full py-4 md:py-6 rounded-xl md:rounded-2xl bg-accent text-white font-black hover:bg-accent-hover transition-all shadow-xl uppercase tracking-widest text-[10px] md:text-xs">
               {loading ? "Syncing..." : "Save Batch Limit"}
             </button>
+          </div>
         </div>
       </main>
     </div>

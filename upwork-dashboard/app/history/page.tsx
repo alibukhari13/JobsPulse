@@ -1,4 +1,3 @@
-// app/history/page.tsx
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useState, useEffect } from "react";
@@ -7,6 +6,16 @@ import Sidebar from "@/components/Sidebar";
 export default function HistoryPage() {
   const [proposals, setProposals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // ✅ Listen to sidebar collapse events
+  useEffect(() => {
+    const handleSidebarChange = (e: CustomEvent) => {
+      setSidebarCollapsed(e.detail.isCollapsed);
+    };
+    window.addEventListener('sidebar-collapsed-change', handleSidebarChange as EventListener);
+    return () => window.removeEventListener('sidebar-collapsed-change', handleSidebarChange as EventListener);
+  }, []);
 
   const fetchProposals = async () => {
     setLoading(true);
@@ -57,8 +66,9 @@ export default function HistoryPage() {
 
       <Sidebar />
 
-      <main className="flex-1 p-4 pt-24 lg:pt-12 lg:ml-72 lg:p-12 overflow-x-hidden">
-        <div className="mx-auto max-w-5xl w-full">
+      <main className={`flex-1 w-full p-4 pt-24 lg:pt-12 overflow-x-hidden transition-all duration-500 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'} lg:p-12`}>
+        {/* ✅ Responsive container width */}
+        <div className={`mx-auto w-full transition-all duration-500 ${sidebarCollapsed ? 'max-w-7xl' : 'max-w-5xl'}`}>
           <header className="mb-8 md:mb-12 flex flex-col justify-between gap-6 md:flex-row md:items-end">
             <div>
               <div className="flex items-center gap-2 mb-3">

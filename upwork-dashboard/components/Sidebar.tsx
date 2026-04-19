@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 import { useState, useEffect } from "react";
@@ -18,11 +17,17 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
   const [showModal, setShowModal] = useState(false);
   const [credentials, setCredentials] = useState({ email: "", password: "" });
   const [isOpen, setIsOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [footerExpanded, setFooterExpanded] = useState(true);
   const [showUpworkPassword, setShowUpworkPassword] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+
+  // 监听来自仪表板的打开模态框请求
+  useEffect(() => {
+    const handleOpenModal = () => setShowModal(true);
+    window.addEventListener('open-upwork-modal', handleOpenModal);
+    return () => window.removeEventListener('open-upwork-modal', handleOpenModal);
+  }, []);
 
   useEffect(() => {
     const stored = localStorage.getItem("theme");
@@ -36,6 +41,10 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
       document.documentElement.setAttribute("data-theme", defaultTheme);
     }
   }, []);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('sidebar-collapsed-change', { detail: { isCollapsed } }));
+  }, [isCollapsed]);
 
   const toggleTheme = () => {
     const newTheme = theme === "dark" ? "light" : "dark";
@@ -76,6 +85,7 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
       return;
     }
     setShowModal(false);
+    setCredentials({ email: "", password: "" });
     await checkAuth();
     window.dispatchEvent(new Event('upwork-connection-change'));
     alert("Upwork Connected! Scraper is now authorized. 🚀");
@@ -99,26 +109,6 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
     router.refresh();
   };
 
-  const handleDeleteAccount = async () => {
-    if (!confirm("Are you absolutely sure? This will permanently delete your account, all settings, and all scraped jobs. This action cannot be undone.")) return;
-    if (!confirm("Please confirm again: Delete my account and all data forever.")) return;
-
-    setIsDeleting(true);
-    try {
-      const res = await fetch("/api/user/delete", { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to delete account");
-
-      alert("Your account has been deleted. You will be redirected to the login page.");
-      router.push("/login");
-      router.refresh();
-    } catch (err: any) {
-      alert(err.message || "Something went wrong");
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
   const menuItems = [
     { name: "Dashboard", href: "/", icon: "M4 6h16M4 12h16M4 18h16" },
     { name: "My Portfolio", href: "/projects", icon: "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" },
@@ -126,6 +116,7 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
     { name: "Proposal Format", href: "/format", icon: "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" },
     { name: "Batches", href: "/batches", icon: "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" },
     { name: "Set Timer", href: "/timer", icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
+    { name: "Profile", href: "/profile", icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" },
   ];
 
   return (
@@ -147,36 +138,49 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
         </button>
       </div>
 
-      {/* Mobile Sidebar Overlay */}
+      {/* Mobile Overlay */}
       {isOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] lg:hidden" onClick={() => setIsOpen(false)} />
       )}
 
       {/* Main Sidebar */}
-      <aside className={`fixed left-0 top-0 h-screen w-72 bg-surface border-r border-custom flex flex-col shadow-2xl z-[70] transition-transform duration-300 lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        
-        {/* Close button (mobile only) */}
-        <button 
-          onClick={() => setIsOpen(false)} 
-          className="lg:hidden absolute top-4 right-4 text-secondary hover:text-primary p-2 bg-surface-light rounded-xl transition-colors"
-        >
-          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-
-        {/* Logo Section */}
-        <div className="flex items-center gap-4 px-6 py-6 border-b border-custom">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent shadow-lg rotate-3">
-            <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
+      <aside 
+        className={`fixed left-0 top-0 h-screen bg-surface border-r border-custom flex flex-col shadow-2xl z-[70] transition-all duration-500 ease-in-out
+        ${isOpen ? 'translate-x-0' : 'lg:translate-x-0 -translate-x-full'} 
+        ${isCollapsed ? 'w-20' : 'w-72'}`}
+      >
+        {/* Header Section */}
+        <div className={`flex items-center transition-all duration-500 py-8 ${isCollapsed ? 'px-0 justify-center' : 'px-6 justify-between'}`}>
+          <div 
+            onClick={() => isCollapsed && setIsCollapsed(false)}
+            className={`flex items-center gap-3 transition-all duration-500 ${isCollapsed ? 'cursor-pointer' : ''}`}
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent shadow-lg rotate-3 flex-shrink-0">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <span className={`text-2xl font-black tracking-tighter uppercase text-primary transition-all duration-500 overflow-hidden whitespace-nowrap ${isCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
+              Job<span className="text-accent">Pulse</span>
+            </span>
           </div>
-          <span className="text-2xl font-black tracking-tighter uppercase text-primary">Job<span className="text-accent">Pulse</span></span>
+          
+          {!isCollapsed && (
+            <button 
+              onClick={() => setIsCollapsed(true)}
+              className="text-muted hover:text-primary transition-all p-1.5 hover:bg-surface-light rounded-md"
+              title="Collapse Sidebar"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="9" y1="3" x2="9" y2="21"></line>
+              </svg>
+            </button>
+          )}
         </div>
 
-        {/* Navigation Links - Scrollable */}
-        <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto custom-scrollbar">
+        {/* Navigation Links */}
+        <nav className={`flex-1 space-y-1 transition-all duration-500 ${isCollapsed ? 'px-2' : 'px-4'}`}>
           {menuItems.map((item) => {
             const isActive = pathname === item.href;
             return (
@@ -184,128 +188,42 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
                 key={item.name} 
                 href={item.href} 
                 onClick={() => setIsOpen(false)}
-                className={`flex items-center gap-3 rounded-xl px-4 py-3 font-bold transition-all ${
-                  isActive 
-                  ? "bg-accent/10 text-accent border border-accent/20" 
-                  : "text-secondary hover:bg-surface-light hover:text-primary"
-                }`}
+                className={`flex items-center rounded-xl transition-all duration-300 group relative
+                  ${isCollapsed ? 'justify-center px-0 py-3' : 'justify-start px-4 py-3'}
+                  ${isActive 
+                    ? "bg-accent/10 text-accent border border-accent/20" 
+                    : "text-secondary hover:bg-surface-light hover:text-primary"}`}
               >
-                <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`h-5 w-5 flex-shrink-0 transition-colors duration-300 ${isActive ? "text-accent" : "text-muted group-hover:text-primary"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
                 </svg>
-                <span className="truncate">{item.name}</span>
+                <span className={`font-bold text-sm transition-all duration-500 overflow-hidden whitespace-nowrap ${isCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100 ml-3'}`}>
+                  {item.name}
+                </span>
+
+                {/* Tooltip for collapsed state */}
+                {isCollapsed && (
+                  <div className="absolute left-full ml-4 px-3 py-1.5 bg-surface border border-custom text-primary text-xs rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 translate-x-[-10px] group-hover:translate-x-0 z-50 whitespace-nowrap shadow-xl">
+                    {item.name}
+                  </div>
+                )}
               </Link>
             );
           })}
         </nav>
 
-        {/* Footer Section with Collapsible Content */}
-        <div className="border-t border-custom">
-          {/* Collapse Toggle Button */}
-          <button
-            onClick={() => setFooterExpanded(!footerExpanded)}
-            className="w-full flex items-center justify-between px-4 py-2.5 text-muted hover:text-primary transition-colors"
-          >
-            <span className="text-[9px] font-black uppercase tracking-widest">User Panel</span>
-            <svg
-              className={`h-4 w-4 transition-transform duration-300 ${footerExpanded ? 'rotate-180' : ''}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-
-          {/* Collapsible Content */}
-          <div
-            className={`overflow-hidden transition-all duration-300 ease-in-out ${
-              footerExpanded ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
-            }`}
-          >
-            <div className="px-4 pb-4 space-y-3">
-              {/* User Info */}
-              {userEmail && (
-                <div className="bg-surface-light p-3 rounded-xl text-center">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-muted">Logged in as</p>
-                  <p className="text-xs font-bold text-primary truncate">{userEmail}</p>
-                </div>
-              )}
-
-              {/* Theme Toggle */}
-              <button
-                onClick={toggleTheme}
-                className="w-full flex items-center justify-center gap-2 bg-surface-light hover:bg-border py-2.5 rounded-xl transition-all text-[10px] font-black uppercase tracking-widest text-secondary hover:text-accent"
-              >
-                {theme === "dark" ? (
-                  <>
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                    </svg>
-                    Light Mode
-                  </>
-                ) : (
-                  <>
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                    </svg>
-                    Dark Mode
-                  </>
-                )}
-              </button>
-
-              {/* Upwork Connection */}
-              {auth.isConnected ? (
-                <div className="space-y-2">
-                  <div className="bg-accent/5 border border-accent/20 p-3 rounded-xl">
-                    <p className="text-[9px] font-black text-accent uppercase tracking-widest mb-1">
-                      Active Upwork Session
-                    </p>
-                    <p className="text-xs font-bold text-primary truncate">{auth.email}</p>
-                  </div>
-                  <button 
-                    onClick={handleDisconnect} 
-                    className="w-full bg-danger/10 text-danger py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-danger hover:text-white transition-all"
-                  >
-                    Disconnect Upwork
-                  </button>
-                </div>
-              ) : (
-                <button 
-                  onClick={() => setShowModal(true)} 
-                  className="w-full bg-accent text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-accent-hover transition-all shadow-lg"
-                >
-                  Connect Upwork
-                </button>
-              )}
-
-              {/* Logout Button */}
-              <button
-                onClick={handleLogout}
-                className="w-full bg-surface-light hover:bg-border text-secondary py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
-              >
-                Logout
-              </button>
-
-              {/* Delete Account Button – Dark Red */}
-              <button
-                onClick={handleDeleteAccount}
-                disabled={isDeleting}
-                className="w-full bg-danger hover:bg-danger-hover text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50 shadow-lg"
-              >
-                {isDeleting ? "Deleting..." : "Delete Account"}
-              </button>
-            </div>
-          </div>
-
-          {/* Status Indicator (Always Visible) */}
-          <div className="px-4 pb-3 pt-1">
-            <div className="flex items-center justify-center gap-2">
-              <div className={`h-1.5 w-1.5 rounded-full ${isSyncing ? 'bg-warning animate-pulse' : 'bg-success'}`} />
-              <span className="text-[9px] font-black uppercase tracking-widest text-muted">
+        {/* Bottom Status Section */}
+        <div className={`p-4 border-t border-custom transition-all duration-500 ${isCollapsed ? 'flex justify-center' : ''}`}>
+          <div className={`flex items-center gap-3 transition-all duration-500 ${isCollapsed ? '' : 'px-2'}`}>
+            <div className={`h-2 w-2 rounded-full flex-shrink-0 ${isSyncing ? 'bg-warning animate-pulse' : 'bg-success'}`} />
+            <span className={`text-[9px] font-black uppercase tracking-widest text-muted transition-all duration-500 overflow-hidden whitespace-nowrap ${isCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
+              {isSyncing ? 'Syncing Engine' : 'Engine Stable'}
+            </span>
+            {isCollapsed && (
+              <div className="absolute left-full ml-4 px-3 py-1.5 bg-surface border border-custom text-primary text-xs rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 translate-x-[-10px] group-hover:translate-x-0 z-50 whitespace-nowrap shadow-xl">
                 {isSyncing ? 'Syncing Engine' : 'Engine Stable'}
-              </span>
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </aside>
@@ -321,6 +239,7 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
                 type="email" 
                 placeholder="Upwork Email" 
                 className="w-full bg-surface-light border border-custom rounded-2xl p-4 outline-none focus:border-accent text-primary transition-all"
+                value={credentials.email}
                 onChange={(e) => setCredentials({...credentials, email: e.target.value})}
               />
               <div className="relative">
@@ -328,6 +247,7 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
                   type={showUpworkPassword ? "text" : "password"}
                   placeholder="Password" 
                   className="w-full bg-surface-light border border-custom rounded-2xl p-4 pr-12 outline-none focus:border-accent text-primary transition-all"
+                  value={credentials.password}
                   onChange={(e) => setCredentials({...credentials, password: e.target.value})}
                 />
                 <button
@@ -354,6 +274,13 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
           </div>
         </div>
       )}
+
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--color-accent); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--color-accent-hover); }
+      `}</style>
     </>
   );
 }

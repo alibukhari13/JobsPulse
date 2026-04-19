@@ -1,4 +1,3 @@
-// app/format/page.tsx
 /* eslint-disable react-hooks/immutability */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
@@ -75,7 +74,17 @@ function SortableSection({ id, s, index, updateSection, removeSection, saveSingl
 export default function FormatPage() {
   const [sections, setSections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const sensors = useSensors(useSensor(PointerSensor));
+
+  // ✅ Listen to sidebar collapse events
+  useEffect(() => {
+    const handleSidebarChange = (e: CustomEvent) => {
+      setSidebarCollapsed(e.detail.isCollapsed);
+    };
+    window.addEventListener('sidebar-collapsed-change', handleSidebarChange as EventListener);
+    return () => window.removeEventListener('sidebar-collapsed-change', handleSidebarChange as EventListener);
+  }, []);
 
   useEffect(() => { fetchFormat(); }, []);
 
@@ -135,8 +144,9 @@ export default function FormatPage() {
   return (
     <div className="flex min-h-screen bg-page text-primary font-sans antialiased overflow-x-hidden">
       <Sidebar />
-      <main className="flex-1 p-4 pt-24 lg:pt-12 lg:ml-72 lg:p-12 overflow-x-hidden">
-        <div className="mx-auto max-w-5xl w-full">
+      <main className={`flex-1 w-full p-4 pt-24 lg:pt-12 overflow-x-hidden transition-all duration-500 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'} lg:p-12`}>
+        {/* ✅ Responsive container width */}
+        <div className={`mx-auto w-full transition-all duration-500 ${sidebarCollapsed ? 'max-w-7xl' : 'max-w-5xl'}`}>
           <header className="mb-10 md:mb-16 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
             <div>
               <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.5em] text-accent">AI Logic Configuration</span>
