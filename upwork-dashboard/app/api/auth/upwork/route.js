@@ -41,7 +41,14 @@ export async function POST(request) {
   try {
     const { email, password } = await request.json();
 
-    // ✅ Check if this Upwork email is already used by a DIFFERENT user
+    // 1. Check if current user already has a connection (it's fine, we'll update)
+    const { data: existingForUser } = await supabase
+      .from('upwork_auth')
+      .select('id')
+      .eq('user_id', session.user.userId)
+      .maybeSingle();
+
+    // 2. Check if this email is used by a DIFFERENT user
     const { data: existingByEmail } = await supabase
       .from('upwork_auth')
       .select('user_id')
@@ -55,7 +62,7 @@ export async function POST(request) {
       );
     }
 
-    // ✅ Allow current user to connect (upsert on user_id)
+    // 3. Upsert the record – if current user already has a row, it will update
     const { error } = await supabase
       .from('upwork_auth')
       .upsert(
@@ -65,12 +72,12 @@ export async function POST(request) {
           password,
           updated_at: new Date(),
         },
-        { onConflict: 'user_id' }
+        { onConflict: 'user_id' }   // user_id is unique
       );
 
     if (error) throw error;
 
-    // ✅ Update session flag
+    // Update session flag
     session.user.upworkConnected = true;
     await session.save();
 
@@ -96,7 +103,6 @@ export async function DELETE() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // ✅ Update session flag
   session.user.upworkConnected = false;
   await session.save();
 
