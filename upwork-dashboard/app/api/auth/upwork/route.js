@@ -1,4 +1,3 @@
-// app/api/auth/upwork/route.js
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
@@ -42,21 +41,21 @@ export async function POST(request) {
   try {
     const { email, password } = await request.json();
 
-    // ✅ Check if this Upwork email is already connected by ANOTHER user
-    const { data: existing } = await supabase
+    // ✅ Check if this Upwork email is already used by a DIFFERENT user
+    const { data: existingByEmail } = await supabase
       .from('upwork_auth')
       .select('user_id')
       .eq('email', email)
       .maybeSingle();
 
-    if (existing && existing.user_id !== session.user.userId) {
+    if (existingByEmail && existingByEmail.user_id !== session.user.userId) {
       return NextResponse.json(
         { error: 'This Upwork account is already connected to another dashboard user.' },
         { status: 403 }
       );
     }
 
-    // Upsert for current user (user_id is unique, so it will update if exists)
+    // ✅ Allow current user to connect (upsert on user_id)
     const { error } = await supabase
       .from('upwork_auth')
       .upsert(

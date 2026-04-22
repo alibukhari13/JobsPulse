@@ -3,9 +3,12 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { useToast } from "@/context/ToastContext";
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [auth, setAuth] = useState({ isConnected: false, email: "", connectedByMe: true });
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
@@ -16,7 +19,10 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  // ✅ Listen to sidebar collapse events
+  // Confirmation dialogs state
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
   useEffect(() => {
     const handleSidebarChange = (e: CustomEvent) => {
       setSidebarCollapsed(e.detail.isCollapsed);
@@ -69,33 +75,37 @@ export default function ProfilePage() {
   }, []);
 
   const handleConnect = async () => {
-    if (!credentials.email || !credentials.password) return alert("Please fill all fields");
+    if (!credentials.email || !credentials.password) {
+      showToast("Please fill all fields", "warning");
+      return;
+    }
     const res = await fetch("/api/auth/upwork", {
       method: "POST",
       body: JSON.stringify(credentials),
     });
     const data = await res.json();
     if (!res.ok) {
-      alert(data.error || "Connection failed");
+      showToast(data.error || "Connection failed", "error");
       return;
     }
     setShowModal(false);
     setCredentials({ email: "", password: "" });
     await fetchProfileData();
     window.dispatchEvent(new Event('upwork-connection-change'));
-    alert("Upwork Connected! 🚀");
+    showToast("Upwork Connected! 🚀", "success");
   };
 
   const handleDisconnect = async () => {
-    if (!confirm("Disconnect Upwork account? fetching will stop running.")) return;
     const res = await fetch("/api/auth/upwork", { method: "DELETE" });
     if (res.ok) {
       await fetchProfileData();
       window.dispatchEvent(new Event('upwork-connection-change'));
+      showToast("Upwork disconnected", "info");
     } else {
       const data = await res.json();
-      alert(data.error);
+      showToast(data.error, "error");
     }
+    setConfirmDisconnect(false);
   };
 
   const handleLogout = async () => {
@@ -105,22 +115,22 @@ export default function ProfilePage() {
   };
 
   const handleDeleteAccount = async () => {
-    if (!confirm("Are you absolutely sure? This will permanently delete your account, all settings, and all fetched jobs. This action cannot be undone.")) return;
-    if (!confirm("Please confirm again: Delete my account and all data forever.")) return;
-
     setIsDeleting(true);
     try {
       const res = await fetch("/api/user/delete", { method: "DELETE" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to delete account");
 
-      alert("Your account has been deleted.");
-      router.push("/login");
-      router.refresh();
+      showToast("Account deleted successfully", "success");
+      setTimeout(() => {
+        router.push("/login");
+        router.refresh();
+      }, 1000);
     } catch (err: any) {
-      alert(err.message || "Something went wrong");
+      showToast(err.message || "Something went wrong", "error");
     } finally {
       setIsDeleting(false);
+      setConfirmDelete(false);
     }
   };
 
@@ -142,7 +152,6 @@ export default function ProfilePage() {
     <div className="flex min-h-screen bg-page text-primary font-sans antialiased overflow-x-hidden">
       <Sidebar />
       <main className={`flex-1 w-full p-4 pt-24 lg:pt-12 overflow-x-hidden transition-all duration-500 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'} lg:p-12`}>
-        {/* ✅ Responsive container width */}
         <div className={`mx-auto w-full transition-all duration-500 ${sidebarCollapsed ? 'max-w-5xl' : 'max-w-3xl'}`}>
           <header className="mb-8 md:mb-12">
             <div className="flex items-center gap-2 mb-3">
@@ -215,7 +224,7 @@ export default function ProfilePage() {
                     <p className="text-base font-bold text-primary break-all">{auth.email}</p>
                   </div>
                   <button
-                    onClick={handleDisconnect}
+                    onClick={() => setConfirmDisconnect(true)}
                     className="w-full sm:w-auto bg-danger/10 hover:bg-danger text-danger hover:text-white py-3 px-6 rounded-xl font-black text-xs uppercase tracking-widest transition-all"
                   >
                     Disconnect Upwork
@@ -251,7 +260,7 @@ export default function ProfilePage() {
                 </button>
                 <div className="border-t border-custom pt-4">
                   <button
-                    onClick={handleDeleteAccount}
+                    onClick={() => setConfirmDelete(true)}
                     disabled={isDeleting}
                     className="w-full sm:w-auto bg-danger hover:bg-danger-hover text-white py-3 px-6 rounded-xl font-black text-xs uppercase tracking-widest transition-all disabled:opacity-50"
                   >
@@ -308,6 +317,28 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+
+      {/* Confirmation Dialogs */}
+      <ConfirmDialog
+        isOpen={confirmDisconnect}
+        title="Disconnect Upwork?"
+        message="Disconnect Upwork account? Scraper will stop running."
+        confirmText="Disconnect"
+        cancelText="Cancel"
+        onConfirm={handleDisconnect}
+        onCancel={() => setConfirmDisconnect(false)}
+      />
+
+      <ConfirmDialog
+        isOpen={confirmDelete}
+        title="Delete Account"
+        message="Are you absolutely sure? This will permanently delete your account, all settings, and all fetched jobs. This action cannot be undone."
+        confirmText={isDeleting ? "Deleting..." : "Yes, Delete Account"}
+        cancelText="Cancel"
+        onConfirm={handleDeleteAccount}
+        onCancel={() => setConfirmDelete(false)}
+        isLoading={isDeleting}
+      />
     </div>
   );
 }

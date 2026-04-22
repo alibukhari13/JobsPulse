@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { useToast } from "@/context/ToastContext";
 
 interface AuthStatus {
   isConnected: boolean;
@@ -13,6 +15,7 @@ interface AuthStatus {
 export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { showToast } = useToast();
   const [auth, setAuth] = useState<AuthStatus>({ isConnected: false, email: "", connectedByMe: false });
   const [showModal, setShowModal] = useState(false);
   const [credentials, setCredentials] = useState({ email: "", password: "" });
@@ -21,8 +24,8 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [showUpworkPassword, setShowUpworkPassword] = useState(false);
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
 
-  // 监听来自仪表板的打开模态框请求
   useEffect(() => {
     const handleOpenModal = () => setShowModal(true);
     window.addEventListener('open-upwork-modal', handleOpenModal);
@@ -74,33 +77,37 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
   }, []);
 
   const handleConnect = async () => {
-    if (!credentials.email || !credentials.password) return alert("Please fill all fields");
+    if (!credentials.email || !credentials.password) {
+      showToast("Please fill all fields", "warning");
+      return;
+    }
     const res = await fetch("/api/auth/upwork", {
       method: "POST",
       body: JSON.stringify(credentials),
     });
     const data = await res.json();
     if (!res.ok) {
-      alert(data.error || "Connection failed");
+      showToast(data.error || "Connection failed", "error");
       return;
     }
     setShowModal(false);
     setCredentials({ email: "", password: "" });
     await checkAuth();
     window.dispatchEvent(new Event('upwork-connection-change'));
-    alert("Upwork Connected! Scraper is now authorized. 🚀");
+    showToast("Upwork Connected! 🚀", "success");
   };
 
   const handleDisconnect = async () => {
-    if (!confirm("Disconnect Upwork account? Scraper will stop running.")) return;
     const res = await fetch("/api/auth/upwork", { method: "DELETE" });
     if (res.ok) {
       await checkAuth();
       window.dispatchEvent(new Event('upwork-connection-change'));
+      showToast("Upwork disconnected", "info");
     } else {
       const data = await res.json();
-      alert(data.error);
+      showToast(data.error, "error");
     }
+    setConfirmDisconnect(false);
   };
 
   const handleLogout = async () => {
@@ -111,13 +118,12 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
 
   const menuItems = [
     { name: "Dashboard", href: "/", icon: "M4 6h16M4 12h16M4 18h16" },
-        { name: "Profile", href: "/profile", icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" },
+    { name: "Profile", href: "/profile", icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" },
     { name: "My Portfolio", href: "/projects", icon: "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" },
     { name: "Proposal Format", href: "/format", icon: "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" },
     { name: "Batches", href: "/batches", icon: "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" },
     { name: "Set Timer", href: "/timer", icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
-        { name: "History", href: "/history", icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
-
+    { name: "History", href: "/history", icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
   ];
 
   return (
@@ -150,7 +156,6 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
         ${isOpen ? 'translate-x-0' : 'lg:translate-x-0 -translate-x-full'} 
         ${isCollapsed ? 'w-20' : 'w-72'}`}
       >
-        {/* Header Section */}
         <div className={`flex items-center transition-all duration-500 py-8 ${isCollapsed ? 'px-0 justify-center' : 'px-6 justify-between'}`}>
           <div 
             onClick={() => isCollapsed && setIsCollapsed(false)}
@@ -180,7 +185,6 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
           )}
         </div>
 
-        {/* Navigation Links */}
         <nav className={`flex-1 space-y-1 transition-all duration-500 ${isCollapsed ? 'px-2' : 'px-4'}`}>
           {menuItems.map((item) => {
             const isActive = pathname === item.href;
@@ -202,7 +206,6 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
                   {item.name}
                 </span>
 
-                {/* Tooltip for collapsed state */}
                 {isCollapsed && (
                   <div className="absolute left-full ml-4 px-3 py-1.5 bg-surface border border-custom text-primary text-xs rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 translate-x-[-10px] group-hover:translate-x-0 z-50 whitespace-nowrap shadow-xl">
                     {item.name}
@@ -213,7 +216,6 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
           })}
         </nav>
 
-        {/* Bottom Status Section */}
         <div className={`p-4 border-t border-custom transition-all duration-500 ${isCollapsed ? 'flex justify-center' : ''}`}>
           <div className={`flex items-center gap-3 transition-all duration-500 ${isCollapsed ? '' : 'px-2'}`}>
             <div className={`h-2 w-2 rounded-full flex-shrink-0 ${isSyncing ? 'bg-warning animate-pulse' : 'bg-success'}`} />
@@ -255,7 +257,6 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
                   type="button"
                   onClick={() => setShowUpworkPassword(!showUpworkPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-primary transition-colors p-1"
-                  aria-label={showUpworkPassword ? "Hide password" : "Show password"}
                 >
                   {showUpworkPassword ? (
                     <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -275,6 +276,17 @@ export default function Sidebar({ isSyncing = false }: { isSyncing?: boolean }) 
           </div>
         </div>
       )}
+
+      {/* Confirmation Dialog for Disconnect */}
+      <ConfirmDialog
+        isOpen={confirmDisconnect}
+        title="Disconnect Upwork?"
+        message="Disconnect Upwork account? Scraper will stop running."
+        confirmText="Disconnect"
+        cancelText="Cancel"
+        onConfirm={handleDisconnect}
+        onCancel={() => setConfirmDisconnect(false)}
+      />
 
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
