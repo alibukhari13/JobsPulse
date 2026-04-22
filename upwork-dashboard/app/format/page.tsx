@@ -3,6 +3,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { useToast } from "@/context/ToastContext";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -75,7 +77,13 @@ export default function FormatPage() {
   const [sections, setSections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{ isOpen: boolean; dbId: any; index: number }>({
+    isOpen: false,
+    dbId: null,
+    index: -1,
+  });
   const sensors = useSensors(useSensor(PointerSensor));
+  const { showToast } = useToast();
 
   // ✅ Listen to sidebar collapse events
   useEffect(() => {
@@ -120,32 +128,45 @@ export default function FormatPage() {
       method: "POST",
       body: JSON.stringify({ ...section, order_index: index + 1 }),
     });
+    showToast("Section saved", "success");
   };
 
   const saveBulk = async (data: any[]) => {
     const formatted = data.map((s, i) => ({ ...s, order_index: i + 1 }));
     await fetch("/api/format", { method: "POST", body: JSON.stringify(formatted) });
+    showToast("Order updated", "success");
   };
 
   const addSection = async () => {
     setLoading(true);
     const newBlock = { section_name: "New Section", section_instruction: "", order_index: sections.length + 1 };
     const res = await fetch("/api/format", { method: "POST", body: JSON.stringify(newBlock) });
-    if (res.ok) await fetchFormat();
+    if (res.ok) {
+      await fetchFormat();
+      showToast("New section added", "success");
+    } else {
+      showToast("Failed to add section", "error");
+    }
     setLoading(false);
   };
 
-  const removeSection = async (dbId: any, index: number) => {
-    if (!confirm("Delete permanently?")) return;
+  const handleDeleteConfirm = async () => {
+    const { dbId, index } = confirmDelete;
+    if (dbId === null) return;
     setSections(sections.filter((_, i) => i !== index));
     await fetch(`/api/format?id=${dbId}`, { method: "DELETE" });
+    showToast("Section deleted", "info");
+    setConfirmDelete({ isOpen: false, dbId: null, index: -1 });
+  };
+
+  const removeSection = (dbId: any, index: number) => {
+    setConfirmDelete({ isOpen: true, dbId, index });
   };
 
   return (
     <div className="flex min-h-screen bg-page text-primary font-sans antialiased overflow-x-hidden">
       <Sidebar />
       <main className={`flex-1 w-full p-4 pt-24 lg:pt-12 overflow-x-hidden transition-all duration-500 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'} lg:p-12`}>
-        {/* ✅ Responsive container width */}
         <div className={`mx-auto w-full transition-all duration-500 ${sidebarCollapsed ? 'max-w-7xl' : 'max-w-5xl'}`}>
           <header className="mb-10 md:mb-16 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
             <div>
@@ -180,6 +201,17 @@ export default function FormatPage() {
           </button>
         </div>
       </main>
+
+      {/* Confirmation Dialog for Delete */}
+      <ConfirmDialog
+        isOpen={confirmDelete.isOpen}
+        title="Delete Section"
+        message="Are you sure you want to delete this section permanently?"
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setConfirmDelete({ isOpen: false, dbId: null, index: -1 })}
+      />
     </div>
   );
 }

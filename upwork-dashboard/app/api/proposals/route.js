@@ -1,24 +1,25 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
-import { sessionOptions, SessionData } from '@/lib/session';
+import { sessionOptions } from '@/lib/session';
 import { cookies } from 'next/headers';
 
-const supabaseUrl = process.env.SUPABASE_URL || "https://mktrthxggufposxyubuh.supabase.co";
-const supabaseKey = process.env.SUPABASE_KEY || "sb_publishable_hlO_nQq2lkuXACKh9awggg_7X0opSBf";
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function GET() {
   const session = await getIronSession(await cookies(), sessionOptions);
-  if (!session.user?.userId) {
+  if (!session || !session.user || !session.user.userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
+    const userId = session.user.userId;
     const { data, error } = await supabase
       .from('proposals')
       .select('*')
-      .eq('user_id', session.user.userId)
+      .eq('user_id', userId)
       .order('updated_at', { ascending: false });
     if (error) throw error;
     return NextResponse.json(data || []);
@@ -30,11 +31,12 @@ export async function GET() {
 
 export async function POST(request) {
   const session = await getIronSession(await cookies(), sessionOptions);
-  if (!session.user?.userId) {
+  if (!session || !session.user || !session.user.userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
+    const userId = session.user.userId;
     const body = await request.json();
     console.log("Saving Proposal for:", body.jobId);
 
@@ -45,7 +47,7 @@ export async function POST(request) {
           job_id: body.jobId,
           job_title: body.jobTitle,
           proposal_text: body.proposalText,
-          user_id: session.user.userId,
+          user_id: userId,
           updated_at: new Date().toISOString(),
         },
         { onConflict: 'job_id, user_id' }
@@ -66,18 +68,19 @@ export async function POST(request) {
 
 export async function DELETE(request) {
   const session = await getIronSession(await cookies(), sessionOptions);
-  if (!session.user?.userId) {
+  if (!session || !session.user || !session.user.userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
+    const userId = session.user.userId;
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     const { error } = await supabase
       .from('proposals')
       .delete()
       .eq('id', id)
-      .eq('user_id', session.user.userId);
+      .eq('user_id', userId);
     if (error) throw error;
     return NextResponse.json({ success: true });
   } catch (err) {

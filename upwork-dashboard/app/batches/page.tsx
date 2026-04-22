@@ -1,11 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
+import { useToast } from "@/context/ToastContext";
 
 export default function ScraperSettings() {
   const [batches, setBatches] = useState(3);
   const [loading, setLoading] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const { showToast } = useToast();
 
   // ✅ Listen to sidebar collapse events
   useEffect(() => {
@@ -34,12 +36,12 @@ export default function ScraperSettings() {
       });
 
       if (res.ok) {
-        alert("Scraper Engine Reconfigured! 🚀");
+        showToast("Scraper Engine Reconfigured! 🚀", "success");
       } else {
         throw new Error("Failed to save");
       }
     } catch (err) {
-      alert("Failed to sync settings");
+      showToast("Failed to sync settings", "error");
     } finally {
       setLoading(false);
     }

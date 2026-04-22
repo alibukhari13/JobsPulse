@@ -3,6 +3,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { useToast } from "@/context/ToastContext";
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<any[]>([]);
@@ -10,6 +12,11 @@ export default function ProjectsPage() {
   const [editingProject, setEditingProject] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{ isOpen: boolean; id: number | null }>({
+    isOpen: false,
+    id: null,
+  });
+  const { showToast } = useToast();
 
   // ✅ Listen to sidebar collapse events
   useEffect(() => {
@@ -40,28 +47,48 @@ export default function ProjectsPage() {
 
   const saveNewProjects = async () => {
     const validProjects = newProjects.filter(p => p.project_name.trim());
-    if (validProjects.length === 0) return alert("Please enter at least one project name.");
+    if (validProjects.length === 0) {
+      showToast("Please enter at least one project name.", "warning");
+      return;
+    }
     setLoading(true);
-    await fetch("/api/projects", { method: "POST", body: JSON.stringify(validProjects) });
-    setNewProjects([{ project_name: "", project_link: "", project_description: "" }]);
-    fetchProjects();
-    setLoading(false);
-    alert("Portfolio Updated! 🚀");
+    try {
+      await fetch("/api/projects", { method: "POST", body: JSON.stringify(validProjects) });
+      setNewProjects([{ project_name: "", project_link: "", project_description: "" }]);
+      fetchProjects();
+      showToast("Portfolio Updated! 🚀", "success");
+    } catch (err) {
+      showToast("Failed to update portfolio", "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const updateProject = async () => {
     setLoading(true);
-    await fetch("/api/projects", { method: "POST", body: JSON.stringify(editingProject) });
-    setEditingProject(null);
-    fetchProjects();
-    setLoading(false);
-    alert("Project Updated! ✅");
+    try {
+      await fetch("/api/projects", { method: "POST", body: JSON.stringify(editingProject) });
+      setEditingProject(null);
+      fetchProjects();
+      showToast("Project Updated! ✅", "success");
+    } catch (err) {
+      showToast("Failed to update project", "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const deleteProject = async (id: number) => {
-    if (!confirm("Delete this project?")) return;
+  const handleDeleteConfirm = async () => {
+    const id = confirmDelete.id;
+    if (!id) return;
     await fetch(`/api/projects?id=${id}`, { method: "DELETE" });
     fetchProjects();
+    showToast("Project deleted", "info");
+    setConfirmDelete({ isOpen: false, id: null });
+  };
+
+  const deleteProject = (id: number) => {
+    setConfirmDelete({ isOpen: true, id });
   };
 
   return (
@@ -86,7 +113,6 @@ export default function ProjectsPage() {
       <Sidebar />
 
       <main className={`flex-1 w-full p-4 pt-24 lg:pt-12 overflow-x-hidden transition-all duration-500 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'} lg:p-12`}>
-        {/* ✅ Responsive container width */}
         <div className={`mx-auto w-full transition-all duration-500 ${sidebarCollapsed ? 'max-w-7xl' : 'max-w-5xl'}`}>
           <header className="mb-8 md:mb-12">
             <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-accent">Asset Management</span>
@@ -127,6 +153,17 @@ export default function ProjectsPage() {
           </div>
         </div>
       </main>
+
+      {/* Confirmation Dialog for Delete */}
+      <ConfirmDialog
+        isOpen={confirmDelete.isOpen}
+        title="Delete Project"
+        message="Are you sure you want to delete this project? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setConfirmDelete({ isOpen: false, id: null })}
+      />
     </div>
   );
 }

@@ -1,12 +1,13 @@
-// components/ProposalModal.tsx
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useState } from "react";
+import { useToast } from "@/context/ToastContext";
 
 export default function ProposalModal({ job, onClose }: { job: any, onClose: () => void }) {
   const [proposal, setProposal] = useState("");
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const { showToast } = useToast();
 
   const generateAI = async () => {
     setLoading(true);
@@ -19,7 +20,7 @@ export default function ProposalModal({ job, onClose }: { job: any, onClose: () 
       const data = await res.json();
       setProposal(data.proposal);
     } catch (err) {
-      alert("AI Generation Failed!");
+      showToast("AI Generation Failed!", "error");
     } finally {
       setLoading(false);
     }
@@ -37,14 +38,17 @@ export default function ProposalModal({ job, onClose }: { job: any, onClose: () 
       }),
     });
     if (res.ok) {
-      alert("Proposal Saved & Agent Trained! ✅");
+      showToast("Proposal Saved & Agent Trained! ✅", "success");
       onClose();
+    } else {
+      showToast("Failed to save proposal", "error");
     }
   };
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(proposal);
     setCopied(true);
+    showToast("Copied to clipboard!", "info");
     setTimeout(() => setCopied(false), 2000);
   };
 

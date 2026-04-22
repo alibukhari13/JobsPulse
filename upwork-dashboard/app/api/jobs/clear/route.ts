@@ -1,35 +1,40 @@
-// app/api/jobs/clear/route.ts
-
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
-import { sessionOptions, SessionData } from '@/lib/session';
+import { sessionOptions } from '@/lib/session';
 import { cookies } from 'next/headers';
 
-const supabaseUrl = process.env.SUPABASE_URL || "https://mktrthxggufposxyubuh.supabase.co";
-const supabaseKey = process.env.SUPABASE_KEY || "sb_publishable_hlO_nQq2lkuXACKh9awggg_7X0opSBf";
+const supabaseUrl = process.env.SUPABASE_URL!;
+const supabaseKey = process.env.SUPABASE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+interface SessionData {
+  user?: {
+    userId: string;
+  };
+}
+
 export async function DELETE() {
-  const session = await getIronSession<{ user: SessionData }>(await cookies(), sessionOptions);
-  if (!session.user?.userId) {
+  const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
+  // Runtime check
+  if (!session || !session.user || !session.user.userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    // Delete all jobs for this user
+    const userId = session.user.userId;
+
     const { error: deleteError } = await supabase
       .from('jobs')
       .delete()
-      .eq('user_id', session.user.userId);
+      .eq('user_id', userId);
 
     if (deleteError) throw deleteError;
 
-    // Set force_scrape flag to true (new table structure – only user_id)
     const { error: updateError } = await supabase
       .from('settings')
       .update({ force_scrape: true, updated_at: new Date().toISOString() })
-      .eq('user_id', session.user.userId);
+      .eq('user_id', userId);
 
     if (updateError) throw updateError;
 

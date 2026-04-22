@@ -1,13 +1,24 @@
-//  app/timer/page.tsx
- "use client";
+"use client";
 import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
+import { useToast } from "@/context/ToastContext";
 
 export default function TimerPage() {
   const [h, setH] = useState(0);
   const [m, setM] = useState(0);
   const [s, setS] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const { showToast } = useToast();
+
+  // ✅ Listen to sidebar collapse events
+  useEffect(() => {
+    const handleSidebarChange = (e: CustomEvent) => {
+      setSidebarCollapsed(e.detail.isCollapsed);
+    };
+    window.addEventListener('sidebar-collapsed-change', handleSidebarChange as EventListener);
+    return () => window.removeEventListener('sidebar-collapsed-change', handleSidebarChange as EventListener);
+  }, []);
 
   useEffect(() => {
     fetch("/api/settings-s/timer")
@@ -25,14 +36,18 @@ export default function TimerPage() {
     const totalMinutes = (Number(h) * 60) + Number(m) + (Number(s) / 60);
 
     try {
-      await fetch("/api/settings-s/timer", {
+      const res = await fetch("/api/settings-s/timer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ expiry_minutes: totalMinutes }),
       });
-      alert("System Protocol Updated! ⚡");
+      if (res.ok) {
+        showToast("System Protocol Updated! ⚡", "success");
+      } else {
+        throw new Error("Failed to save");
+      }
     } catch (err) {
-      alert("Sync Error");
+      showToast("Sync Error", "error");
     } finally {
       setLoading(false);
     }
@@ -41,7 +56,7 @@ export default function TimerPage() {
   return (
     <div className="flex min-h-screen bg-page text-primary font-sans antialiased overflow-x-hidden">
       <Sidebar />
-      <main className="flex-1 lg:ml-72 flex flex-col items-center justify-center p-4 pt-24 md:p-12 overflow-x-hidden">
+      <main className={`flex-1 w-full p-4 pt-24 md:p-12 overflow-x-hidden transition-all duration-500 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'} flex flex-col items-center justify-center`}>
         <div className="w-full max-w-xl text-center mb-8 md:mb-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/5 border border-accent/10 mb-4 md:mb-6">
             <div className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-accent animate-pulse"></div>

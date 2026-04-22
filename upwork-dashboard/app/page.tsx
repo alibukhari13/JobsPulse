@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import ProposalModal from "@/components/ProposalModal";
 import Sidebar from "@/components/Sidebar";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { useToast } from "@/context/ToastContext";
 
 // --- Skeleton Loader Component ---
 const JobSkeleton = () => (
@@ -104,11 +106,13 @@ export default function Dashboard() {
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [upworkConnected, setUpworkConnected] = useState<boolean | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [confirmClearAll, setConfirmClearAll] = useState(false);
 
   const jobsPerPage = 8;
   const initialLoadRef = useRef(true);
   const quickPollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const normalPollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     const handleSidebarChange = (e: CustomEvent) => {
@@ -203,8 +207,8 @@ export default function Dashboard() {
     }
   }, [isWaitingForNewJobs, startQuickPolling, stopQuickPollingAndResumeNormal]);
 
-  const handleClearAll = async () => {
-    if (!confirm("Are you sure you want to delete ALL jobs? This cannot be undone.")) return;
+  const handleClearAllConfirm = async () => {
+    setConfirmClearAll(false);
     setIsClearing(true);
     try {
       const res = await fetch("/api/jobs/clear", { method: "DELETE" });
@@ -215,9 +219,9 @@ export default function Dashboard() {
       setCurrentPage(1);
       setIsWaitingForNewJobs(true);
       
-      alert("All jobs cleared. Scraping new jobs...");
+      showToast("All jobs cleared. Scraping new jobs...", "success");
     } catch (err: any) {
-      alert(err.message || "Failed to clear jobs");
+      showToast(err.message || "Failed to clear jobs", "error");
       setIsWaitingForNewJobs(false);
     } finally {
       setIsClearing(false);
@@ -412,7 +416,7 @@ export default function Dashboard() {
                 </button>
               </div>
               <button
-                onClick={handleClearAll}
+                onClick={() => setConfirmClearAll(true)}
                 disabled={isClearing || jobs.length === 0}
                 className="bg-danger/10 hover:bg-danger text-danger hover:text-white p-3 md:p-4 rounded-full transition-all active:scale-90 disabled:opacity-30 disabled:hover:bg-danger/10 disabled:hover:text-danger"
                 title="Clear All Jobs"
@@ -443,6 +447,18 @@ export default function Dashboard() {
           )}
         </div>
       </main>
+
+      {/* Confirmation Dialog for Clear All Jobs */}
+      <ConfirmDialog
+        isOpen={confirmClearAll}
+        title="Clear All Jobs"
+        message="Are you sure you want to delete ALL jobs? This cannot be undone."
+        confirmText="Clear All"
+        cancelText="Cancel"
+        onConfirm={handleClearAllConfirm}
+        onCancel={() => setConfirmClearAll(false)}
+        isLoading={isClearing}
+      />
     </div>
   );
 }

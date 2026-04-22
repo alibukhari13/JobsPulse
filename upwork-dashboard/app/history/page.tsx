@@ -2,11 +2,18 @@
 "use client";
 import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { useToast } from "@/context/ToastContext";
 
 export default function HistoryPage() {
   const [proposals, setProposals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{ isOpen: boolean; id: number | null }>({
+    isOpen: false,
+    id: null,
+  });
+  const { showToast } = useToast();
 
   // ✅ Listen to sidebar collapse events
   useEffect(() => {
@@ -32,10 +39,17 @@ export default function HistoryPage() {
 
   useEffect(() => { fetchProposals(); }, []);
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Delete this proposal?")) return;
+  const handleDeleteConfirm = async () => {
+    const id = confirmDelete.id;
+    if (!id) return;
     setProposals(prev => prev.filter(p => p.id !== id));
     await fetch(`/api/proposals?id=${id}`, { method: "DELETE" });
+    showToast("Proposal deleted", "info");
+    setConfirmDelete({ isOpen: false, id: null });
+  };
+
+  const handleDelete = (id: number) => {
+    setConfirmDelete({ isOpen: true, id });
   };
 
   const handleUpdate = async (p: any) => {
@@ -48,7 +62,11 @@ export default function HistoryPage() {
         proposal_text: p.proposal_text
       }),
     });
-    if (res.ok) alert("Changes Saved & AI Trained! ✅");
+    if (res.ok) {
+      showToast("Changes Saved & AI Trained! ✅", "success");
+    } else {
+      showToast("Failed to save changes", "error");
+    }
   };
 
   const updateLocalText = (id: number, newText: string) => {
@@ -67,7 +85,6 @@ export default function HistoryPage() {
       <Sidebar />
 
       <main className={`flex-1 w-full p-4 pt-24 lg:pt-12 overflow-x-hidden transition-all duration-500 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'} lg:p-12`}>
-        {/* ✅ Responsive container width */}
         <div className={`mx-auto w-full transition-all duration-500 ${sidebarCollapsed ? 'max-w-7xl' : 'max-w-5xl'}`}>
           <header className="mb-8 md:mb-12 flex flex-col justify-between gap-6 md:flex-row md:items-end">
             <div>
@@ -121,6 +138,17 @@ export default function HistoryPage() {
           )}
         </div>
       </main>
+
+      {/* Confirmation Dialog for Delete */}
+      <ConfirmDialog
+        isOpen={confirmDelete.isOpen}
+        title="Delete Proposal"
+        message="Are you sure you want to delete this proposal? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setConfirmDelete({ isOpen: false, id: null })}
+      />
     </div>
   );
 }

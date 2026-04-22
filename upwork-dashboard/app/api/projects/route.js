@@ -1,16 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
-import { sessionOptions, SessionData } from '@/lib/session';
+import { sessionOptions } from '@/lib/session';
 import { cookies } from 'next/headers';
 
-const supabaseUrl = process.env.SUPABASE_URL || "https://mktrthxggufposxyubuh.supabase.co";
-const supabaseKey = process.env.SUPABASE_KEY || "sb_publishable_hlO_nQq2lkuXACKh9awggg_7X0opSBf";
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function GET() {
   const session = await getIronSession(await cookies(), sessionOptions);
-  if (!session.user?.userId) {
+  if (!session || !session.user || !session.user.userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -24,15 +24,16 @@ export async function GET() {
 
 export async function POST(request) {
   const session = await getIronSession(await cookies(), sessionOptions);
-  if (!session.user?.userId) {
+  if (!session || !session.user || !session.user.userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
     const body = await request.json();
+    const userId = session.user.userId;
     const payload = Array.isArray(body)
-      ? body.map((item) => ({ ...item, user_id: session.user.userId }))
-      : { ...body, user_id: session.user.userId };
+      ? body.map((item) => ({ ...item, user_id: userId }))
+      : { ...body, user_id: userId };
 
     const { data, error } = await supabase
       .from('portfolio')
@@ -48,16 +49,17 @@ export async function POST(request) {
 
 export async function DELETE(request) {
   const session = await getIronSession(await cookies(), sessionOptions);
-  if (!session.user?.userId) {
+  if (!session || !session.user || !session.user.userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const userId = session.user.userId;
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
   await supabase
     .from('portfolio')
     .delete()
     .eq('id', id)
-    .eq('user_id', session.user.userId);
+    .eq('user_id', userId);
   return NextResponse.json({ success: true });
 }

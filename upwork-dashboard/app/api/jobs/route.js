@@ -1,32 +1,33 @@
-// app/api/jobs/clear/route.ts
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
 import { sessionOptions } from '@/lib/session';
 import { cookies } from 'next/headers';
 
-const supabaseUrl = process.env.SUPABASE_URL || "https://mktrthxggufposxyubuh.supabase.co";
-const supabaseKey = process.env.SUPABASE_KEY || "sb_publishable_hlO_nQq2lkuXACKh9awggg_7X0opSBf";
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const session = await getIronSession(await cookies(), sessionOptions);
-  if (!session.user?.userId) {
+  if (!session || !session.user || !session.user.userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // ✅ Block jobs if Upwork is not connected on this session
+  // Block jobs if Upwork is not connected on this session
   if (!session.user.upworkConnected) {
     return NextResponse.json([], { headers: { 'Cache-Control': 'no-store' } });
   }
 
   try {
+    const userId = session.user.userId;
+
     const { data: settings } = await supabase
       .from('settings')
       .select('expiry_minutes')
-      .eq('user_id', session.user.userId)
+      .eq('user_id', userId)
       .maybeSingle();
 
     if (settings && settings.expiry_minutes > 0) {
@@ -35,14 +36,14 @@ export async function GET() {
       await supabase
         .from('jobs')
         .delete()
-        .eq('user_id', session.user.userId)
+        .eq('user_id', userId)
         .lt('created_at', cutoffTime);
     }
 
     const { data: jobs, error } = await supabase
       .from('jobs')
       .select('*')
-      .eq('user_id', session.user.userId)
+      .eq('user_id', userId)
       .order('id', { ascending: false });
 
     if (error) throw error;
@@ -55,7 +56,7 @@ export async function GET() {
 
 export async function DELETE(request) {
   const session = await getIronSession(await cookies(), sessionOptions);
-  if (!session.user?.userId) {
+  if (!session || !session.user || !session.user.userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -65,13 +66,14 @@ export async function DELETE(request) {
   }
 
   try {
+    const userId = session.user.userId;
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     await supabase
       .from('jobs')
       .delete()
       .eq('job_id', id)
-      .eq('user_id', session.user.userId);
+      .eq('user_id', userId);
     return NextResponse.json({ success: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
